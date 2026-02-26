@@ -4,12 +4,8 @@
  * Internal components (BottomSheet, TripProgressBar, etc.) are NOT exported.
  */
 
+// Components
+export { HomeEmptyScreen } from './components/HomeEmptyScreen';
+
 // Types (used by app/ pages for data passing)
 export type { VehicleWithTrip, SheetState } from './types';
-
-// Components will be added as they are built:
-// export { HomeScreen } from './components/HomeScreen';
-
-// Server actions will be added as they are built:
-// export { getVehicles } from './api/get-vehicles';
-// export { getVehicleById } from './api/get-vehicle-by-id';
