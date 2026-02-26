@@ -1,7 +1,7 @@
 import type { Vehicle } from '@/types/vehicle';
 
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { getStatusMessage, getBatteryColor, getBatteryTextColor } from '@/lib/vehicle-helpers';
+import { getBatteryColor, getBatteryTextColor } from '@/lib/vehicle-helpers';
 
 /** Props for the ParkedPeekContent component. */
 export interface ParkedPeekContentProps {
@@ -11,34 +11,34 @@ export interface ParkedPeekContentProps {
 
 /**
  * Bottom sheet peek content when vehicle is parked, charging, or offline.
- * Vehicle name, status badge, status message, location, battery bar.
+ * Shows vehicle name, status badge, location, and battery level.
+ * Each piece of info appears exactly once — no redundancy.
  */
 export function ParkedPeekContent({ vehicle }: ParkedPeekContentProps) {
   return (
     <div className="px-6">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">{vehicle.name}</h2>
-          <p className="text-text-secondary text-sm font-light mt-0.5">
-            {getStatusMessage(vehicle)}
-          </p>
-        </div>
+      {/* Row 1: Vehicle name + status badge */}
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-lg font-semibold text-text-primary">{vehicle.name}</h2>
         <StatusBadge status={vehicle.status} />
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-text-secondary text-sm font-light">{vehicle.locationName}</p>
-        <div className="flex items-center gap-2">
-          <span className={`text-sm font-medium tabular-nums ${getBatteryTextColor(vehicle.chargeLevel)}`}>
-            {vehicle.chargeLevel}%
-          </span>
-          <div className="w-16 h-1.5 bg-bg-elevated rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full ${getBatteryColor(vehicle.chargeLevel)}`}
-              style={{ width: `${vehicle.chargeLevel}%` }}
-            />
-          </div>
+      {/* Row 2: Location */}
+      <p className="text-text-secondary text-sm font-light mb-4">
+        {vehicle.locationAddress}
+      </p>
+
+      {/* Row 3: Battery bar — full width */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-1.5 bg-bg-elevated rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full ${getBatteryColor(vehicle.chargeLevel, vehicle.status)}`}
+            style={{ width: `${vehicle.chargeLevel}%` }}
+          />
         </div>
+        <span className={`text-sm font-medium tabular-nums ${getBatteryTextColor(vehicle.chargeLevel, vehicle.status)}`}>
+          {vehicle.chargeLevel}%
+        </span>
       </div>
     </div>
   );

@@ -72,12 +72,12 @@ export function ParkedHalfContent({ vehicle }: ParkedHalfContentProps) {
       <div className="mb-5">
         <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-2">Battery</p>
         <div className="flex items-center gap-3">
-          <span className={`text-lg font-medium tabular-nums ${getBatteryTextColor(vehicle.chargeLevel)}`}>
+          <span className={`text-lg font-medium tabular-nums ${getBatteryTextColor(vehicle.chargeLevel, vehicle.status)}`}>
             {vehicle.chargeLevel}%
           </span>
           <div className="flex-1 h-2 bg-bg-elevated rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full ${getBatteryColor(vehicle.chargeLevel)}`}
+              className={`h-full rounded-full ${getBatteryColor(vehicle.chargeLevel, vehicle.status)}`}
               style={{ width: `${vehicle.chargeLevel}%`, backgroundColor: config.color }}
             />
           </div>
@@ -85,7 +85,7 @@ export function ParkedHalfContent({ vehicle }: ParkedHalfContentProps) {
       </div>
 
       <p className="text-text-muted text-xs">Updated {vehicle.lastUpdated}</p>
-      <div className="h-6" />
+      <div className="h-20" />
     </div>
   );
 }

@@ -109,12 +109,12 @@ export function SharedViewerScreen({ vehicle, ownerName }: SharedViewerScreenPro
             )}
 
             <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium tabular-nums ${getBatteryTextColor(vehicle.chargeLevel)}`}>
+              <span className={`text-sm font-medium tabular-nums ${getBatteryTextColor(vehicle.chargeLevel, vehicle.status)}`}>
                 {vehicle.chargeLevel}%
               </span>
               <div className="w-14 h-1.5 bg-bg-elevated rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full ${getBatteryColor(vehicle.chargeLevel)}`}
+                  className={`h-full rounded-full ${getBatteryColor(vehicle.chargeLevel, vehicle.status)}`}
                   style={{ width: `${vehicle.chargeLevel}%` }}
                 />
               </div>

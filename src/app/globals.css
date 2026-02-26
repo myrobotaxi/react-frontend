@@ -56,7 +56,7 @@
   /* Status Colors */
   --color-status-driving: #30D158;
   --color-status-parked: #3B82F6;
-  --color-status-charging: #FFD60A;
+  --color-status-charging: #30D158;
   --color-status-offline: #6B6B6B;
 
   /* Battery Colors */

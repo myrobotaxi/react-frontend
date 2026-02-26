@@ -19,6 +19,8 @@ export interface UseBottomSheetReturn {
   onTouchMove: (e: React.TouchEvent) => void;
   /** Touch end handler for the sheet. */
   onTouchEnd: () => void;
+  /** Toggle between peek and half states (for click/keyboard). */
+  toggle: () => void;
 }
 
 /**
@@ -65,6 +67,10 @@ export function useBottomSheet(initialState: SheetState = 'peek'): UseBottomShee
     setSheetOffset(0);
   }, [isDragging, sheetOffset, heights]);
 
+  const toggle = useCallback(() => {
+    setSheetState((prev) => (prev === 'peek' ? 'half' : 'peek'));
+  }, []);
+
   const currentHeight = isDragging
     ? Math.max(120, Math.min(heights.half, dragStartHeight.current + sheetOffset))
     : heights[sheetState];
@@ -76,5 +82,6 @@ export function useBottomSheet(initialState: SheetState = 'peek'): UseBottomShee
     onTouchStart,
     onTouchMove,
     onTouchEnd,
+    toggle,
   };
 }

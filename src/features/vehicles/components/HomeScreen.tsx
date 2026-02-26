@@ -39,16 +39,27 @@ export function HomeScreen({ vehicles, drives }: HomeScreenProps) {
 
   const vehicle = vehicles[currentVehicleIndex];
 
-  // Find the most recent drive for the current vehicle
+  // Find the active drive for the current vehicle.
+  // When driving, match by destination name (the current trip).
+  // Otherwise fall back to the most recent drive by date.
   const currentDrive = useMemo(() => {
-    const vehicleDrives = drives
-      .filter((d) => d.vehicleId === vehicle.id)
-      .sort((a, b) => {
-        if (a.date !== b.date) return b.date.localeCompare(a.date);
-        return b.startTime.localeCompare(a.startTime);
-      });
+    const vehicleDrives = drives.filter((d) => d.vehicleId === vehicle.id);
+
+    // Match by destination when actively driving
+    if (vehicle.status === 'driving' && vehicle.destinationName) {
+      const activeDrive = vehicleDrives.find(
+        (d) => d.endLocation === vehicle.destinationName,
+      );
+      if (activeDrive) return activeDrive;
+    }
+
+    // Fallback: sort by date descending, then by parsed time descending
+    vehicleDrives.sort((a, b) => {
+      if (a.date !== b.date) return b.date.localeCompare(a.date);
+      return parseTime12h(b.startTime) - parseTime12h(a.startTime);
+    });
     return vehicleDrives[0] as Drive | undefined;
-  }, [vehicle.id, drives]);
+  }, [vehicle.id, vehicle.status, vehicle.destinationName, drives]);
 
   const isDriving = vehicle.status === 'driving';
   const routePoints = currentDrive?.routePoints;
@@ -94,6 +105,7 @@ export function HomeScreen({ vehicles, drives }: HomeScreenProps) {
         onTouchStart={sheet.onTouchStart}
         onTouchMove={sheet.onTouchMove}
         onTouchEnd={sheet.onTouchEnd}
+        onToggle={sheet.toggle}
       >
         {/* Peek content */}
         {isDriving ? (
@@ -117,6 +129,18 @@ export function HomeScreen({ vehicles, drives }: HomeScreenProps) {
       </BottomSheet>
     </div>
   );
+}
+
+/** Parses "2:15 PM" style time strings into minutes since midnight for comparison. */
+function parseTime12h(time: string): number {
+  const match = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const isPM = match[3].toUpperCase() === 'PM';
+  if (isPM && hours !== 12) hours += 12;
+  if (!isPM && hours === 12) hours = 0;
+  return hours * 60 + minutes;
 }
 
 /** Subtle compass direction labels overlaying the map. */

@@ -17,6 +17,8 @@ export interface BottomSheetProps {
   onTouchMove: (e: React.TouchEvent) => void;
   /** Touch end handler. */
   onTouchEnd: () => void;
+  /** Click handler to toggle sheet state (desktop/trackpad). */
+  onToggle: () => void;
   /** Sheet content. */
   children: React.ReactNode;
 }
@@ -31,6 +33,7 @@ export function BottomSheet({
   onTouchStart,
   onTouchMove,
   onTouchEnd,
+  onToggle,
   children,
 }: BottomSheetProps) {
   return (
@@ -46,14 +49,16 @@ export function BottomSheet({
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* Drag handle */}
-      <div
-        className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing shrink-0"
+      {/* Drag handle — click to toggle on desktop */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex justify-center w-full pt-3 pb-2 cursor-pointer shrink-0"
         role="separator"
-        aria-label="Drag to resize"
+        aria-label="Toggle vehicle details"
       >
         <div className="w-9 h-1 rounded-full bg-bg-elevated" />
-      </div>
+      </button>
 
       {/* Scrollable content area */}
       <div className="overflow-y-auto" style={{ height: 'calc(100% - 28px)' }}>
