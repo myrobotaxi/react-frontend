@@ -126,9 +126,26 @@ Every PR **must** include Playwright-recorded demo videos of all affected screen
 
 ### PR Description Format
 
-- Include a **Screens** section with the video files committed to the repo (use relative paths: `docs/videos/filename.webm`)
-- Since the repo is private, do NOT use `raw.githubusercontent.com` URLs — they won't render. Use relative paths or commit the assets to the repo.
+- Include a **Screens** section with videos and screenshots committed to the repo
 - For any new screens or modified interactions, add or update the corresponding recording scene in `scripts/record-demos.mjs`
+
+### Linking Media in PR Descriptions (Private Repo)
+
+Since this repo is private, relative paths and `raw.githubusercontent.com` URLs do NOT work in PR descriptions. Use full blob URLs with `?raw=true`:
+
+**Screenshots (render inline):**
+```markdown
+![Sign In](https://github.com/tnando/my-robo-taxi/blob/<branch>/docs/screenshots/01-signin.png?raw=true)
+```
+
+**Videos (click to download):**
+```markdown
+[03-home-map.webm](https://github.com/tnando/my-robo-taxi/blob/<branch>/docs/videos/03-home-map.webm?raw=true)
+```
+
+The pattern is: `https://github.com/tnando/my-robo-taxi/blob/<branch>/<path>?raw=true`
+
+Replace `<branch>` with the PR branch name (e.g., `feature/frontend-ui`).
 
 ### When to Re-record
 
