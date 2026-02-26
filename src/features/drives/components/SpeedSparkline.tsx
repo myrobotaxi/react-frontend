@@ -69,7 +69,7 @@ export function SpeedSparkline({
         Speed over time
       </p>
       <div className="h-16 relative">
-        <svg viewBox={`0 0 ${viewBoxWidth} 64`} className="w-full h-full" preserveAspectRatio="none">
+        <svg viewBox={`0 0 ${viewBoxWidth} 64`} className="w-full h-full" preserveAspectRatio="none" role="img" aria-label={`Speed chart: average ${avgSpeedMph} mph, max ${maxSpeedMph} mph`}>
           <defs>
             <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#C9A84C" stopOpacity="0.15" />

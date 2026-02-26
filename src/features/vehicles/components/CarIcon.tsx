@@ -4,7 +4,7 @@
  */
 export function CarIcon() {
   return (
-    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" className="mx-auto">
+    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" className="mx-auto" aria-hidden="true">
       {/* Car body outline */}
       <path
         d="M16 48h48M16 48c-2 0-4-2-4-4v-6c0-2 1.5-3.5 3-4l8-12c1.5-2.5 3-4 6-4h22c3 0 4.5 1.5 6 4l8 12c1.5.5 3 2 3 4v6c0 2-2 4-4 4"

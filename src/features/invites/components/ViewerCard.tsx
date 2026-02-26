@@ -41,7 +41,10 @@ export function ViewerCard({ invite }: ViewerCardProps) {
       </div>
 
       {/* Revoke — subtle text button */}
-      <button className="text-text-muted text-xs hover:text-text-secondary transition-colors">
+      <button
+        className="text-text-muted text-xs hover:text-text-secondary transition-colors"
+        aria-label={`Revoke access for ${invite.label}`}
+      >
         Revoke
       </button>
     </div>

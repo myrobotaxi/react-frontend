@@ -71,7 +71,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-bg-primary/90 backdrop-blur-2xl border-t border-border-default">
+    <nav aria-label="Main navigation" className="fixed bottom-0 left-0 right-0 z-50 bg-bg-primary/90 backdrop-blur-2xl border-t border-border-default">
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {NAV_ITEMS.map((item) => {
           const active = item.matchFn(pathname);

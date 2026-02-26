@@ -17,7 +17,7 @@ export function Logo({ size = 'lg', showWordmark = true }: LogoProps) {
   return (
     <div className="text-center">
       <div className={`${containerClass} mx-auto flex items-center justify-center`}>
-        <svg width={iconSize} height={iconSize} viewBox="0 0 48 48" fill="none">
+        <svg width={iconSize} height={iconSize} viewBox="0 0 48 48" fill="none" aria-hidden="true">
           <path
             d="M24 4L6 16v16l18 12 18-12V16L24 4z"
             stroke="#C9A84C"

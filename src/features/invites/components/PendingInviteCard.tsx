@@ -27,10 +27,16 @@ export function PendingInviteCard({ invite }: PendingInviteCardProps) {
 
       {/* Actions */}
       <div className="flex gap-3">
-        <button className="text-text-muted text-xs hover:text-text-secondary transition-colors">
+        <button
+          className="text-text-muted text-xs hover:text-text-secondary transition-colors"
+          aria-label={`Resend invite to ${invite.label}`}
+        >
           Resend
         </button>
-        <button className="text-text-muted text-xs hover:text-text-secondary transition-colors">
+        <button
+          className="text-text-muted text-xs hover:text-text-secondary transition-colors"
+          aria-label={`Cancel invite for ${invite.label}`}
+        >
           Cancel
         </button>
       </div>

@@ -35,6 +35,8 @@ export function BottomSheet({
 }: BottomSheetProps) {
   return (
     <div
+      role="region"
+      aria-label="Vehicle details"
       className="absolute bottom-0 left-0 right-0 z-40 bg-bg-secondary/95 backdrop-blur-2xl rounded-t-[24px] border-t border-border-default"
       style={{
         height,
@@ -45,7 +47,11 @@ export function BottomSheet({
       onTouchEnd={onTouchEnd}
     >
       {/* Drag handle */}
-      <div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing shrink-0">
+      <div
+        className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing shrink-0"
+        role="separator"
+        aria-label="Drag to resize"
+      >
         <div className="w-9 h-1 rounded-full bg-bg-elevated" />
       </div>
 
