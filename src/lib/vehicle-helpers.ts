@@ -9,7 +9,7 @@ import type { Vehicle, VehicleStatus, StatusConfigMap } from '@/types/vehicle';
 export const STATUS_CONFIG: StatusConfigMap = {
   driving: { color: '#30D158', label: 'Driving', dotColor: 'bg-status-driving' },
   parked: { color: '#3B82F6', label: 'Parked', dotColor: 'bg-status-parked' },
-  charging: { color: '#FFD60A', label: 'Charging', dotColor: 'bg-status-charging' },
+  charging: { color: '#30D158', label: 'Charging', dotColor: 'bg-status-charging' },
   offline: { color: '#6B6B6B', label: 'Offline', dotColor: 'bg-status-offline' },
 };
 
@@ -32,9 +32,10 @@ export function getStatusMessage(vehicle: Vehicle): string {
 
 /**
  * Returns the Tailwind background color class for a battery level.
- * Green > 50%, yellow 20-50%, red < 20%.
+ * Always green when charging. Otherwise: green > 50%, yellow 20-50%, red < 20%.
  */
-export function getBatteryColor(level: number): string {
+export function getBatteryColor(level: number, status?: VehicleStatus): string {
+  if (status === 'charging') return 'bg-battery-high';
   if (level > 50) return 'bg-battery-high';
   if (level > 20) return 'bg-battery-mid';
   return 'bg-battery-low';
@@ -42,9 +43,10 @@ export function getBatteryColor(level: number): string {
 
 /**
  * Returns the Tailwind text color class for a battery level.
- * Green > 50%, yellow 20-50%, red < 20%.
+ * Always green when charging. Otherwise: green > 50%, yellow 20-50%, red < 20%.
  */
-export function getBatteryTextColor(level: number): string {
+export function getBatteryTextColor(level: number, status?: VehicleStatus): string {
+  if (status === 'charging') return 'text-battery-high';
   if (level > 50) return 'text-battery-high';
   if (level > 20) return 'text-battery-mid';
   return 'text-battery-low';

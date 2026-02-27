@@ -113,6 +113,22 @@ Commit after completing each logical unit of work. A logical unit is one of:
 - **Never commit secrets** (.env, tokens, credentials)
 - **Never commit node_modules, .next, or build artifacts**
 
+## Pull Request Requirements
+
+Every PR **must** include screenshots of all affected screens committed to the repo.
+
+### Linking Media in PR Descriptions (Private Repo)
+
+Since this repo is private, relative paths and `raw.githubusercontent.com` URLs do NOT work in PR descriptions. Use full blob URLs with `?raw=true`:
+
+```markdown
+![Sign In](https://github.com/tnando/my-robo-taxi/blob/<branch>/docs/screenshots/01-signin.png?raw=true)
+```
+
+The pattern is: `https://github.com/tnando/my-robo-taxi/blob/<branch>/<path>?raw=true`
+
+Replace `<branch>` with the PR branch name (e.g., `feature/frontend-ui`).
+
 ## What NOT to Do
 
 - Do NOT put business logic in `app/` pages — pages are thin orchestrators

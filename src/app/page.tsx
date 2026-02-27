@@ -1,9 +1,16 @@
-import { redirect } from 'next/navigation';
+import { HomeScreen } from '@/features/vehicles';
+import { MOCK_VEHICLES, MOCK_DRIVES } from '@/lib/mock-data';
+import { BottomNav } from '@/components/layout/BottomNav';
 
 /**
- * Root route — redirects to sign-in page.
- * The sign-in page lives at /(auth)/signin.
+ * Root route — renders the Home screen with map.
+ * Auth gate will redirect unauthenticated users to /signin once NextAuth is integrated.
  */
 export default function RootPage() {
-  redirect('/signin');
+  return (
+    <div className="min-h-screen bg-bg-primary">
+      <HomeScreen vehicles={MOCK_VEHICLES} drives={MOCK_DRIVES} />
+      <BottomNav />
+    </div>
+  );
 }

@@ -1,11 +1,13 @@
+import { DriveHistoryScreen } from '@/features/drives';
+import { MOCK_VEHICLES, MOCK_DRIVES } from '@/lib/mock-data';
+
 /**
  * Drive history page — list of completed drives.
- * Fetches drive data and passes to DriveHistoryScreen.
+ * Fetches vehicle + drive data and passes to DriveHistoryScreen.
  */
 export default function DrivesPage() {
-  return (
-    <main className="min-h-screen bg-bg-primary px-6 pt-16">
-      <p className="text-text-muted text-sm">Drive History — coming soon</p>
-    </main>
-  );
+  const vehicle = MOCK_VEHICLES[0];
+  const drives = MOCK_DRIVES.filter((d) => d.vehicleId === vehicle.id);
+
+  return <DriveHistoryScreen vehicle={vehicle} drives={drives} />;
 }
