@@ -30,9 +30,11 @@ export function SignInForm() {
           <Button variant="social" icon={<GoogleIcon />} onClick={() => handleSignIn('google')}>
             Continue with Google
           </Button>
-          <Button variant="social" icon={<AppleIcon />} onClick={() => handleSignIn('apple')}>
-            Continue with Apple
-          </Button>
+          {process.env.NEXT_PUBLIC_APPLE_ENABLED === 'true' && (
+            <Button variant="social" icon={<AppleIcon />} onClick={() => handleSignIn('apple')}>
+              Continue with Apple
+            </Button>
+          )}
         </div>
       </div>
     </div>
