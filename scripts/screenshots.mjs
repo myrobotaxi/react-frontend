@@ -15,11 +15,12 @@ const pages = [
   { path: '/invites', name: '06-invites' },
   { path: '/settings', name: '07-settings' },
   { path: '/empty', name: '08-home-empty' },
-  { path: '/shared/demo-token', name: '09-shared-viewer' },
+  { path: '/shared/test-token', name: '09-shared-viewer' },
 ];
 
 async function run() {
-  const browser = await chromium.launch({ headless: true });
+  // Headed mode — Mapbox GL requires real GPU for WebGL rendering
+  const browser = await chromium.launch({ headless: false });
   const ctxOptions = {
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
@@ -36,9 +37,9 @@ async function run() {
   for (const { path, name } of pages) {
     const page = await ctx.newPage();
     try {
-      await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle', timeout: 15000 });
-      // Wait a bit for animations/map to render
-      await page.waitForTimeout(1500);
+      await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      // Wait for map tiles and animations to render
+      await page.waitForTimeout(3000);
       await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: false });
       console.log(`✓ ${name}`);
     } catch (e) {

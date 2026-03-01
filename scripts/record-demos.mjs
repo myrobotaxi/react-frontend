@@ -40,10 +40,9 @@ const demos = [
     description: 'Shared viewer — authenticated peek state with bottom sheet',
     authenticated: true,
     steps: async (page) => {
-      await page.goto(`${BASE}/shared/test-token`, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      // Wait for map + bottom sheet to render
-      await page.waitForSelector('[aria-label="Vehicle details"]', { timeout: 10000 });
-      await page.waitForTimeout(3000);
+      await page.goto(`${BASE}/shared/test-token`, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      // Wait for map tiles + client hydration + bottom sheet render
+      await page.waitForTimeout(5000);
     },
   },
   {
@@ -51,13 +50,11 @@ const demos = [
     description: 'Shared viewer — drag bottom sheet from peek to half',
     authenticated: true,
     steps: async (page) => {
-      await page.goto(`${BASE}/shared/test-token`, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      await page.waitForSelector('[aria-label="Vehicle details"]', { timeout: 10000 });
-      await page.waitForTimeout(2000);
-      // Click the drag handle to toggle to half state
-      const handle = page.getByRole('separator', { name: 'Toggle vehicle details' });
-      await handle.click();
-      await page.waitForTimeout(2500);
+      await page.goto(`${BASE}/shared/test-token`, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await page.waitForTimeout(4000);
+      // Click the drag handle area to toggle to half state (top-center of bottom sheet)
+      await page.mouse.click(195, 655);
+      await page.waitForTimeout(3000);
     },
   },
 ];
@@ -111,10 +108,8 @@ async function run() {
     console.log('Run `node scripts/save-auth.mjs` to create one\n');
   }
 
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--use-gl=angle', '--use-angle=swiftshader'],
-  });
+  // Headed mode — Mapbox GL requires real GPU for WebGL rendering
+  const browser = await chromium.launch({ headless: false });
 
   for (const demo of demos) {
     if (demo.authenticated && !hasAuth) {
