@@ -143,7 +143,7 @@ Since this repo is private, relative paths and `raw.githubusercontent.com` URLs 
 For video demos, use the same pattern (GitHub renders `.mp4` inline):
 
 ```markdown
-![Protected redirect](https://github.com/tnando/my-robo-taxi/blob/<branch>/demos/01-protected-redirect.mp4?raw=true)
+![Protected redirect](https://github.com/tnando/my-robo-taxi/blob/<branch>/demos/01-protected-redirect.gif?raw=true)
 ```
 
 The pattern is: `https://github.com/tnando/my-robo-taxi/blob/<branch>/<path>?raw=true`
