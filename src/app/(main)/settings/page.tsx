@@ -1,3 +1,6 @@
+'use client';
+
+import { useAuth } from '@/features/auth';
 import { SettingsScreen } from '@/features/settings';
 
 import type { UserSettings } from '@/features/settings';
@@ -21,5 +24,7 @@ const MOCK_SETTINGS: UserSettings = {
  * Fetches settings data and passes to SettingsScreen.
  */
 export default function SettingsPage() {
-  return <SettingsScreen settings={MOCK_SETTINGS} />;
+  const { signOut } = useAuth();
+
+  return <SettingsScreen settings={MOCK_SETTINGS} onSignOut={signOut} />;
 }
