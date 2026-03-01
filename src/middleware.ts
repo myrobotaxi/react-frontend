@@ -2,7 +2,7 @@ import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
 
 const AUTH_PAGES = ['/signin', '/signup'];
-const PUBLIC_PATHS = ['/signin', '/signup', '/shared', '/api/auth'];
+const PUBLIC_PATHS = ['/signin', '/signup', '/api/auth'];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname.startsWith(path));

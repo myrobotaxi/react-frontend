@@ -19,13 +19,13 @@ const demos = [
     },
   },
   {
-    name: '02-public-route-access',
-    description: 'Visit /shared/demo-token while signed out → page loads normally',
+    name: '02-shared-route-redirect',
+    description: 'Visit /shared/demo-token while signed out → redirects to /signin',
     steps: async (page) => {
-      await page.goto(`${BASE}/shared/demo-token`, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      // Wait for client-side hydration — SharedViewerScreen renders this text
-      await page.waitForSelector('text=Watching', { timeout: 15000 });
-      await page.waitForTimeout(3000);
+      await page.goto(`${BASE}/shared/demo-token`, { waitUntil: 'networkidle', timeout: 15000 });
+      await page.waitForURL('**/signin', { timeout: 10000 });
+      await page.waitForSelector('button', { timeout: 5000 });
+      await page.waitForTimeout(2000);
     },
   },
 ];
