@@ -19,7 +19,7 @@
     "mapbox-gl": "^3.18.1",
     "next": "14.2.35",
     "next-auth": "^4.24.13",
-    "react": "^18",
+    "react": "^19",
     "react-dom": "^18"
   },
   "devDependencies": {
@@ -31,7 +31,7 @@
     "@types/mapbox__point-geometry": "^1.0.87",
     "@types/mapbox-gl": "^3.5.0",
     "@types/node": "^25",
-    "@types/react": "^18",
+    "@types/react": "^19",
     "@types/react-dom": "^18",
     "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^8",
