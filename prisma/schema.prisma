@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Auth (NextAuth / Auth.js) ───────────────────────────────────────────────
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -16,6 +18,9 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
+  vehicles      Vehicle[]
+  invitesSent   Invite[]  @relation("InviteSender")
+  settings      Settings?
 }
 
 model Account {
@@ -34,4 +39,146 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+}
+
+// ─── Vehicles ────────────────────────────────────────────────────────────────
+
+model Vehicle {
+  id               String        @id @default(cuid())
+  userId           String
+  name             String
+  model            String
+  year             Int
+  color            String
+  licensePlate     String
+  chargeLevel      Int           @default(0)
+  estimatedRange   Int           @default(0)
+  status           VehicleStatus @default(offline)
+  speed            Int           @default(0)
+  heading          Int           @default(0)
+  locationName     String        @default("")
+  locationAddress  String        @default("")
+  latitude         Float         @default(0)
+  longitude        Float         @default(0)
+  interiorTemp     Int           @default(0)
+  exteriorTemp     Int           @default(0)
+  odometerMiles    Int           @default(0)
+  fsdMilesToday    Float         @default(0)
+  destinationName  String?
+  destinationAddress String?
+  etaMinutes       Int?
+  tripDistanceMiles    Float?
+  tripDistanceRemaining Float?
+  lastUpdated      DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drives           Drive[]
+  stops            TripStop[]
+  invites          Invite[]
+
+  @@index([userId])
+}
+
+enum VehicleStatus {
+  driving
+  parked
+  charging
+  offline
+}
+
+model TripStop {
+  id        String   @id @default(cuid())
+  vehicleId String
+  name      String
+  address   String
+  type      StopType
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+enum StopType {
+  charging
+  waypoint
+}
+
+// ─── Drives ──────────────────────────────────────────────────────────────────
+
+model Drive {
+  id               String   @id @default(cuid())
+  vehicleId        String
+  date             String
+  startTime        String
+  endTime          String
+  startLocation    String
+  startAddress     String
+  endLocation      String
+  endAddress       String
+  distanceMiles    Float
+  durationMinutes  Int
+  avgSpeedMph      Float
+  maxSpeedMph      Float
+  energyUsedKwh    Float
+  startChargeLevel Int
+  endChargeLevel   Int
+  fsdMiles         Float
+  fsdPercentage    Float
+  interventions    Int
+  routePoints      Json
+  createdAt        DateTime @default(now())
+  vehicle          Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([vehicleId, date])
+}
+
+// ─── Invites ─────────────────────────────────────────────────────────────────
+
+model Invite {
+  id           String           @id @default(cuid())
+  vehicleId    String
+  senderId     String
+  label        String
+  email        String
+  status       InviteStatus     @default(pending)
+  permission   InvitePermission @default(live)
+  sentDate     DateTime         @default(now())
+  acceptedDate DateTime?
+  lastSeen     DateTime?
+  isOnline     Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  vehicle      Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  sender       User             @relation("InviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([vehicleId])
+  @@unique([vehicleId, email])
+}
+
+enum InviteStatus {
+  pending
+  accepted
+}
+
+enum InvitePermission {
+  live
+  live_history
+}
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+
+model Settings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  teslaLinked           Boolean  @default(false)
+  teslaVehicleName      String?
+  notifyDriveStarted    Boolean  @default(true)
+  notifyDriveCompleted  Boolean  @default(true)
+  notifyChargingComplete Boolean @default(true)
+  notifyViewerJoined    Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
