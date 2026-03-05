@@ -12,6 +12,8 @@ export interface SettingsScreenProps {
   settings: UserSettings;
   /** Callback to sign the user out. */
   onSignOut: () => void;
+  /** Optional callback when a notification toggle changes. */
+  onToggle?: (key: keyof UserSettings['notifications'], value: boolean) => void;
 }
 
 /** Notification toggle item shape. */
@@ -31,11 +33,13 @@ const NOTIFICATION_ITEMS: NotificationItem[] = [
  * Settings screen — profile info, Tesla link status, notification toggles, sign out.
  * Matches ui-mocks/src/pages/Settings.tsx pixel-for-pixel.
  */
-export function SettingsScreen({ settings, onSignOut }: SettingsScreenProps) {
+export function SettingsScreen({ settings, onSignOut, onToggle }: SettingsScreenProps) {
   const [notifications, setNotifications] = useState(settings.notifications);
 
   const handleToggle = (key: keyof UserSettings['notifications']) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+    const newValue = !notifications[key];
+    setNotifications((prev) => ({ ...prev, [key]: newValue }));
+    onToggle?.(key, newValue);
   };
 
   return (
