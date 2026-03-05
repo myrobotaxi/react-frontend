@@ -94,6 +94,16 @@ jobs:
             - Read the linked issue (if any) and verify all acceptance criteria are addressed.
             - Are there gaps between what the issue asks for and what the PR delivers?
 
+            ## Re-review Policy
+
+            Check the PR comment history. If a previous review requested changes and
+            those changes have since been addressed (commits were pushed to fix them),
+            acknowledge that the issues are resolved. Do NOT re-flag issues that have
+            already been fixed. Only REQUEST_CHANGES for genuinely unresolved or new
+            blocking issues. If all previously flagged issues are fixed and no new
+            blocking issues exist, your verdict MUST be APPROVE — even if you have
+            minor non-blocking suggestions.
+
             ## Output Format
 
             Structure your review as:
@@ -132,6 +142,16 @@ jobs:
           # so it can approve/request-changes on PRs authored by tnando.
           if echo "$COMMENT" | grep -qi 'Verdict.*APPROVE'; then
             echo "Submitting approval"
+            # Dismiss any stale REQUEST_CHANGES review from the bot before approving
+            REVIEW_ID=$(GH_TOKEN=${{ secrets.BOT_PAT }} gh api \
+              "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" \
+              --jq '[.[] | select(.user.login == "tnando-gh-bot" and .state == "CHANGES_REQUESTED")] | last | .id' 2>/dev/null)
+            if [ -n "$REVIEW_ID" ] && [ "$REVIEW_ID" != "null" ]; then
+              echo "Dismissing stale REQUEST_CHANGES review $REVIEW_ID"
+              GH_TOKEN=${{ secrets.BOT_PAT }} gh api \
+                "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews/$REVIEW_ID/dismissals" \
+                -f message="Issues resolved — approving." || true
+            fi
             GH_TOKEN=${{ secrets.BOT_PAT }} gh pr review "$PR_NUMBER" --approve \
               -b "Automated approval based on Claude Code review."
           elif echo "$COMMENT" | grep -qi 'Verdict.*REQUEST_CHANGES'; then
