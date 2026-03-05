@@ -5,7 +5,7 @@ export interface ViewerCardProps {
   /** The accepted invite to display. */
   invite: Invite;
   /** Callback to revoke this invite. */
-  onRevoke?: (id: string) => void;
+  onRevoke?: (id: string) => void | Promise<void>;
 }
 
 /**

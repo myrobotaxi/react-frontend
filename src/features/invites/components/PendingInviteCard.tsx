@@ -5,9 +5,9 @@ export interface PendingInviteCardProps {
   /** The pending invite to display. */
   invite: Invite;
   /** Callback to resend this invite. */
-  onResend?: (id: string) => void;
+  onResend?: (id: string) => void | Promise<void>;
   /** Callback to cancel (revoke) this invite. */
-  onCancel?: (id: string) => void;
+  onCancel?: (id: string) => void | Promise<void>;
 }
 
 /**

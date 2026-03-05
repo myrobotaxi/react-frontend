@@ -12,9 +12,9 @@ export interface InvitesScreenProps {
   /** All invites (active + pending). */
   invites: Invite[];
   /** Callback to revoke an invite by ID. */
-  onRevoke?: (id: string) => void;
+  onRevoke?: (id: string) => void | Promise<void>;
   /** Callback to resend an invite by ID. */
-  onResend?: (id: string) => void;
+  onResend?: (id: string) => void | Promise<void>;
 }
 
 /**

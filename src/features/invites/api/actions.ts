@@ -1,5 +1,7 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
+
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import type { Invite, InvitePermission } from '@/types/invite';
@@ -100,6 +102,8 @@ export async function createInvite(data: CreateInviteInput): Promise<Invite> {
 
   // TODO (issue #16): Send invite email to data.email
 
+  revalidatePath('/invites');
+
   return {
     id: invite.id,
     label: invite.label,
@@ -129,6 +133,8 @@ export async function revokeInvite(id: string): Promise<void> {
   }
 
   await prisma.invite.delete({ where: { id } });
+
+  revalidatePath('/invites');
 }
 
 /**
@@ -153,4 +159,6 @@ export async function resendInvite(id: string): Promise<void> {
   });
 
   // TODO (issue #16): Resend invite email to invite.email
+
+  revalidatePath('/invites');
 }
