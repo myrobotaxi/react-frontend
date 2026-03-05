@@ -127,14 +127,18 @@ jobs:
           echo "Verdict line:"
           echo "$COMMENT" | grep -i "Verdict" || echo "(no verdict found)"
 
+          # Note: GH_PAT must belong to a different user than the PR author,
+          # otherwise GitHub blocks approve/request-changes on your own PR.
           if echo "$COMMENT" | grep -qi 'Verdict.*APPROVE'; then
             echo "Submitting approval"
             GH_TOKEN=${{ secrets.GH_PAT }} gh pr review "$PR_NUMBER" --approve \
-              -b "Automated approval based on Claude Code review."
+              -b "Automated approval based on Claude Code review." || \
+              echo "::warning::Could not approve — PAT owner may be the PR author."
           elif echo "$COMMENT" | grep -qi 'Verdict.*REQUEST_CHANGES'; then
             echo "Submitting request for changes"
             GH_TOKEN=${{ secrets.GH_PAT }} gh pr review "$PR_NUMBER" --request-changes \
-              -b "Changes requested based on Claude Code review."
+              -b "Changes requested based on Claude Code review." || \
+              echo "::warning::Could not request changes — PAT owner may be the PR author."
           else
             echo "Submitting comment review"
             GH_TOKEN=${{ secrets.GH_PAT }} gh pr review "$PR_NUMBER" --comment \
