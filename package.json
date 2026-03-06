@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "npx playwright test",
     "record-demos": "node scripts/record-demos.mjs",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
@@ -30,6 +31,7 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
