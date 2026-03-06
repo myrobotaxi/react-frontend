@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
-import { signOut } from '@/auth';
-import { getSettings, updateSettings, SettingsScreen } from '@/features/settings';
+import { signIn, signOut } from '@/auth';
+import { getSettings, updateSettings, unlinkTesla, SettingsScreen } from '@/features/settings';
 
 import type { NotificationPreferences } from '@/features/settings';
 
@@ -9,6 +9,18 @@ import type { NotificationPreferences } from '@/features/settings';
 async function handleSignOut() {
   'use server';
   await signOut({ redirectTo: '/signin' });
+}
+
+/** Server action to initiate Tesla OAuth account linking. */
+async function handleLinkTesla() {
+  'use server';
+  await signIn('tesla', { redirectTo: '/settings' });
+}
+
+/** Server action to unlink the Tesla account. */
+async function handleUnlinkTesla() {
+  'use server';
+  await unlinkTesla();
 }
 
 /** Server action wrapper to persist a single notification toggle. */
@@ -32,6 +44,8 @@ export default async function SettingsPage() {
     <SettingsScreen
       settings={settings}
       onSignOut={handleSignOut}
+      onLinkTesla={handleLinkTesla}
+      onUnlinkTesla={handleUnlinkTesla}
       onToggle={handleToggle}
     />
   );
