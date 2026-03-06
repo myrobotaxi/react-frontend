@@ -67,7 +67,8 @@ vi.mock('@/auth', () => ({
   auth: () => mockAuth(),
 }));
 
-import { syncVehiclesFromTesla, getVehicles } from '@/features/vehicles/api/actions';
+import { syncVehiclesFromTesla } from '@/features/vehicles/api/sync';
+import { getVehicles } from '@/features/vehicles/api/actions';
 import { TeslaApiError } from '@/lib/tesla-client';
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
