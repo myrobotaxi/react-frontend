@@ -322,6 +322,29 @@ async function main() {
   }
   console.log(`Upserted ${invites.length} invites`);
 
+  // ─── Tesla Account (simulates linked Tesla for E2E) ────────────────
+  await prisma.account.upsert({
+    where: {
+      provider_providerAccountId: {
+        provider: 'tesla',
+        providerAccountId: 'tesla-dev-account',
+      },
+    },
+    update: {},
+    create: {
+      userId: DEV_USER_ID,
+      type: 'oauth',
+      provider: 'tesla',
+      providerAccountId: 'tesla-dev-account',
+      access_token: 'dev-tesla-access-token',
+      refresh_token: 'dev-tesla-refresh-token',
+      expires_at: Math.floor(Date.now() / 1000) + 86400,
+      token_type: 'Bearer',
+      scope: 'openid offline_access user_data vehicle_device_data vehicle_location',
+    },
+  });
+  console.log('Upserted Tesla account');
+
   // ─── Settings ───────────────────────────────────────────────────────
   await prisma.settings.upsert({
     where: { userId: DEV_USER_ID },

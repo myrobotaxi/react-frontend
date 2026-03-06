@@ -12,6 +12,10 @@ export interface SettingsScreenProps {
   settings: UserSettings;
   /** Callback to sign the user out. */
   onSignOut: () => void;
+  /** Callback to initiate Tesla account linking. */
+  onLinkTesla: () => void;
+  /** Callback to unlink the Tesla account. */
+  onUnlinkTesla: () => void;
   /** Optional callback when a notification toggle changes. */
   onToggle?: (key: keyof UserSettings['notifications'], value: boolean) => void;
 }
@@ -33,7 +37,13 @@ const NOTIFICATION_ITEMS: NotificationItem[] = [
  * Settings screen — profile info, Tesla link status, notification toggles, sign out.
  * Matches ui-mocks/src/pages/Settings.tsx pixel-for-pixel.
  */
-export function SettingsScreen({ settings, onSignOut, onToggle }: SettingsScreenProps) {
+export function SettingsScreen({
+  settings,
+  onSignOut,
+  onLinkTesla,
+  onUnlinkTesla,
+  onToggle,
+}: SettingsScreenProps) {
   const [notifications, setNotifications] = useState(settings.notifications);
 
   const handleToggle = (key: keyof UserSettings['notifications']) => {
@@ -65,17 +75,38 @@ export function SettingsScreen({ settings, onSignOut, onToggle }: SettingsScreen
         <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-4">
           Tesla Account
         </p>
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-2 h-2 rounded-full ${
-              settings.teslaLinked ? 'bg-status-driving' : 'bg-text-muted'
-            }`}
-          />
-          <p className="text-text-primary text-sm font-light">
-            {settings.teslaLinked
-              ? `Linked to ${settings.teslaVehicleName ?? 'Tesla'}`
-              : 'Not linked'}
-          </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                settings.teslaLinked ? 'bg-status-driving' : 'bg-text-muted'
+              }`}
+            />
+            <p className="text-text-primary text-sm font-light">
+              {settings.teslaLinked
+                ? `Linked to ${settings.teslaVehicleName ?? 'Tesla'}`
+                : 'Not linked'}
+            </p>
+          </div>
+          {settings.teslaLinked ? (
+            <form action={onUnlinkTesla}>
+              <button
+                type="submit"
+                className="text-text-muted text-sm font-light hover:text-red-400 transition-colors"
+              >
+                Unlink
+              </button>
+            </form>
+          ) : (
+            <form action={onLinkTesla}>
+              <button
+                type="submit"
+                className="text-accent-gold text-sm font-medium hover:text-accent-gold/80 transition-colors"
+              >
+                Link
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
@@ -99,13 +130,14 @@ export function SettingsScreen({ settings, onSignOut, onToggle }: SettingsScreen
 
       {/* Sign Out */}
       <div className="px-6 mb-6">
-        <button
-          type="button"
-          onClick={onSignOut}
-          className="text-text-muted text-sm font-light hover:text-text-secondary transition-colors"
-        >
-          Sign Out
-        </button>
+        <form action={onSignOut}>
+          <button
+            type="submit"
+            className="text-text-muted text-sm font-light hover:text-text-secondary transition-colors"
+          >
+            Sign Out
+          </button>
+        </form>
       </div>
 
       {/* Version */}

@@ -84,10 +84,11 @@ Each feature directory contains:
 ### Testing
 
 - **Vitest + React Testing Library** for unit/integration tests
-- **Playwright** for E2E tests
+- **Playwright** for E2E tests (in `e2e/` directory)
 - Tests mirror `src/` structure in `__tests__/`
 - Every component and hook must be testable in isolation
 - No hard dependencies on global singletons — inject via props or context
+- **E2E tests must be updated** when completing a story that changes UI behavior, page content, or user flows. Update existing E2E specs and seed data (`prisma/seed.ts`) to match new functionality.
 
 ### Imports
 

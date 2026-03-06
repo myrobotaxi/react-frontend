@@ -28,16 +28,27 @@ export async function getSettings(): Promise<UserSettings | null> {
 
   const userId = session.user.id;
 
-  const settings = await prisma.settings.upsert({
-    where: { userId },
-    create: { userId },
-    update: {},
-  });
+  const [settings, teslaAccount] = await Promise.all([
+    prisma.settings.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    }),
+    prisma.account.findFirst({
+      where: { userId, provider: 'tesla' },
+      select: { id: true },
+    }),
+  ]);
+
+  // Derive teslaLinked from whether a Tesla Account record exists.
+  // This is more reliable than the Settings flag alone, which depends
+  // on the linkAccount event having fired successfully.
+  const teslaLinked = teslaAccount !== null;
 
   return {
     name: session.user.name ?? '',
     email: session.user.email ?? '',
-    teslaLinked: settings.teslaLinked,
+    teslaLinked,
     teslaVehicleName: settings.teslaVehicleName ?? undefined,
     notifications: {
       driveStarted: settings.notifyDriveStarted,
@@ -83,8 +94,8 @@ export async function updateSettings(
 
 /**
  * Unlink the Tesla account for the current user.
- * Sets teslaLinked to false and clears the vehicle name.
- * Full Tesla unlink with vehicle data deletion is a TODO for issue #11.
+ * Deletes the Tesla Account record (removing stored tokens) and
+ * clears the teslaLinked flag and vehicle name in Settings.
  */
 export async function unlinkTesla(): Promise<void> {
   const session = await auth();
@@ -93,9 +104,15 @@ export async function unlinkTesla(): Promise<void> {
     throw new Error('Not authenticated');
   }
 
+  const userId = session.user.id;
+
+  await prisma.account.deleteMany({
+    where: { userId, provider: 'tesla' },
+  });
+
   await prisma.settings.upsert({
-    where: { userId: session.user.id },
-    create: { userId: session.user.id, teslaLinked: false, teslaVehicleName: null },
+    where: { userId },
+    create: { userId, teslaLinked: false, teslaVehicleName: null },
     update: { teslaLinked: false, teslaVehicleName: null },
   });
 }

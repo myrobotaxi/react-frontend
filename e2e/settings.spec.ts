@@ -20,8 +20,9 @@ test.describe('settings', () => {
     // Profile section
     await expect(page.getByText('Thomas Nandola')).toBeVisible();
 
-    // Tesla Account section
+    // Tesla Account section — linked via seeded Account record
     await expect(page.getByText(/Linked to/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Unlink' })).toBeVisible();
 
     // Notification toggles
     await expect(page.getByText('Drive started')).toBeVisible();
