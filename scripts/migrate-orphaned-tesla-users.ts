@@ -41,18 +41,29 @@ async function main() {
     console.log(`    Tesla accounts: ${orphan.accounts.length}`);
     console.log(`    Vehicles: ${orphan.vehicles.length}`);
 
-    // Find the real user: a Google-authenticated user created just before
-    // this orphan (the user who initiated the Tesla link).
-    const realUser = await prisma.user.findFirst({
+    // Find the real user: a Google/Apple-authenticated user who does NOT
+    // already have a Tesla account linked. Pick the one closest in creation
+    // time to the orphan (could be created before or after).
+    const candidates = await prisma.user.findMany({
       where: {
         id: { not: orphan.id },
         NOT: [{ email: '' }, { email: null }],
-        accounts: { some: { provider: 'google' } },
-        createdAt: { lte: orphan.createdAt },
+        accounts: {
+          some: { provider: { in: ['google', 'apple'] } },
+          none: { provider: 'tesla' },
+        },
       },
-      orderBy: { createdAt: 'desc' },
       include: { accounts: { where: { provider: 'tesla' } } },
     });
+
+    // Pick the candidate closest in creation time to the orphan
+    const realUser = candidates
+      .sort(
+        (a, b) =>
+          Math.abs(a.createdAt.getTime() - orphan.createdAt.getTime()) -
+          Math.abs(b.createdAt.getTime() - orphan.createdAt.getTime()),
+      )
+      .at(0) ?? null;
 
     if (!realUser) {
       console.log('    ⚠ No matching Google user found — skipping');
