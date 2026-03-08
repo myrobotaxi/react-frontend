@@ -6,6 +6,7 @@
 // Components
 export { SettingsScreen } from './components/SettingsScreen';
 export { VirtualKeyPairingDialog } from './components/VirtualKeyPairingDialog';
+export { PairingModalTrigger } from './components/PairingModalTrigger';
 
 // Server actions
 export { getSettings, updateSettings, unlinkTesla, deferKeyPairing } from './api/actions';

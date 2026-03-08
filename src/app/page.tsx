@@ -1,10 +1,8 @@
 import { signIn } from '@/auth';
 import { HomeScreen, HomeEmptyScreen, getVehicles } from '@/features/vehicles';
-import { getSettings, deferKeyPairing } from '@/features/settings';
-import { shouldShowPairingModal } from '@/features/settings/utils';
+import { getSettings, deferKeyPairing, shouldShowPairingModal, PairingModalTrigger } from '@/features/settings';
 import { MOCK_DRIVES } from '@/lib/mock-data';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { PairingModalTrigger } from '@/components/ui/PairingModalTrigger';
 
 /** Server action to initiate Tesla OAuth account linking. */
 async function handleLinkTesla() {

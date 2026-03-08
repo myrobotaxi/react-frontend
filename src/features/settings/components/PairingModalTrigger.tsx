@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 
-import { VirtualKeyPairingDialog } from '@/features/settings/components/VirtualKeyPairingDialog';
+import { VirtualKeyPairingDialog } from './VirtualKeyPairingDialog';
 
 /** Props for the PairingModalTrigger component. */
 export interface PairingModalTriggerProps {
