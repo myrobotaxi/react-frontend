@@ -60,9 +60,9 @@ describe('SetupBanner', () => {
     expect(onDismiss).toHaveBeenCalledOnce();
   });
 
-  it('has role="alert" for accessibility', () => {
+  it('has role="status" for accessibility', () => {
     renderBanner();
 
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 });

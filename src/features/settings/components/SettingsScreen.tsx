@@ -3,13 +3,12 @@
 import { useState, useTransition } from 'react';
 
 import { SetupBanner } from '@/components/ui/SetupBanner';
+import { TESLA_KEY_PAIRING_URL } from '@/lib/constants';
 
 import type { UserSettings } from '../types';
 
 import { ToggleSwitch } from './ToggleSwitch';
 import { UnlinkConfirmDialog } from './UnlinkConfirmDialog';
-
-const TESLA_KEY_PAIRING_URL = 'https://tesla.com/_ak/myrobotaxi.app';
 
 /** Props for the SettingsScreen component. */
 export interface SettingsScreenProps {

@@ -6,10 +6,9 @@ import dynamic from 'next/dynamic';
 import type { Vehicle } from '@/types/vehicle';
 import type { Drive } from '@/types/drive';
 import { SetupBanner } from '@/components/ui/SetupBanner';
+import { TESLA_KEY_PAIRING_URL } from '@/lib/constants';
 
 import { BottomSheet, shouldShowHalfContent } from '@/components/layout/BottomSheet';
-
-const TESLA_KEY_PAIRING_URL = 'https://tesla.com/_ak/myrobotaxi.app';
 
 import { useBottomSheet } from '../hooks/use-bottom-sheet';
 import { VehicleDotSelector } from './VehicleDotSelector';

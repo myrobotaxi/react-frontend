@@ -27,7 +27,7 @@ export function SetupBanner({
 }: SetupBannerProps) {
   return (
     <div
-      role="alert"
+      role="status"
       className="bg-bg-surface border border-border-default rounded-xl px-4 py-3 animate-fade-in"
     >
       <div className="flex items-start gap-3">
