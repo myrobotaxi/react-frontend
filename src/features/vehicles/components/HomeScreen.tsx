@@ -12,6 +12,7 @@ import { BottomSheet, shouldShowHalfContent } from '@/components/layout/BottomSh
 
 import { useBottomSheet } from '../hooks/use-bottom-sheet';
 import { useBackgroundSync } from '../hooks/use-background-sync';
+import { usePullToRefresh } from '../hooks/use-pull-to-refresh';
 import { VehicleDotSelector } from './VehicleDotSelector';
 import { DrivingPeekContent } from './DrivingPeekContent';
 import { ParkedPeekContent } from './ParkedPeekContent';
@@ -44,7 +45,10 @@ export function HomeScreen({ vehicles, drives, virtualKeyPaired = true, onSync }
   const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const sheet = useBottomSheet('peek');
-  const isSyncing = useBackgroundSync(onSync ?? (() => Promise.resolve()));
+  const syncAction = useMemo(() => onSync ?? (() => Promise.resolve()), [onSync]);
+  const isAutoSyncing = useBackgroundSync(syncAction);
+  const { pullDistance, isRefreshing } = usePullToRefresh(syncAction);
+  const isSyncing = isAutoSyncing || isRefreshing;
 
   const vehicle = vehicles[currentVehicleIndex];
 
@@ -106,8 +110,28 @@ export function HomeScreen({ vehicles, drives, virtualKeyPaired = true, onSync }
         </VehicleMap>
       </div>
 
+      {/* Pull-to-refresh indicator */}
+      {pullDistance > 0 && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 z-20 transition-transform"
+          style={{ top: Math.min(pullDistance - 30, 56) }}
+        >
+          <div className="w-8 h-8 rounded-full bg-bg-surface/80 backdrop-blur-sm border border-border-default flex items-center justify-center shadow-lg">
+            <svg
+              className="w-4 h-4 text-gold transition-transform"
+              style={{ transform: `rotate(${pullDistance * 4}deg)`, opacity: Math.min(pullDistance / 80, 1) }}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path d="M1 4v6h6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        </div>
+      )}
+
       {/* Sync indicator */}
-      {isSyncing && (
+      {isSyncing && pullDistance === 0 && (
         <div className="absolute top-14 left-1/2 -translate-x-1/2 z-20" role="status">
           <div className="px-3 py-1 bg-bg-surface/80 backdrop-blur-sm rounded-full flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
