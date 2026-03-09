@@ -99,6 +99,7 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
       // previous values with mapper defaults.
       const updateData: Record<string, unknown> = {
         name: upsertData.name,
+        status: upsertData.status,
         chargeLevel: upsertData.chargeLevel,
         estimatedRange: upsertData.estimatedRange,
         lastUpdated: new Date(),
@@ -107,7 +108,6 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
       if (fullData) {
         updateData.model = upsertData.model;
         updateData.year = upsertData.year;
-        updateData.status = upsertData.status;
         updateData.speed = upsertData.speed;
         updateData.heading = upsertData.heading;
         updateData.interiorTemp = upsertData.interiorTemp;
