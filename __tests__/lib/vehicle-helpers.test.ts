@@ -36,11 +36,12 @@ function makeVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
 }
 
 describe('STATUS_CONFIG', () => {
-  it('has all four status keys', () => {
+  it('has all five status keys', () => {
     expect(STATUS_CONFIG).toHaveProperty('driving');
     expect(STATUS_CONFIG).toHaveProperty('parked');
     expect(STATUS_CONFIG).toHaveProperty('charging');
     expect(STATUS_CONFIG).toHaveProperty('offline');
+    expect(STATUS_CONFIG).toHaveProperty('in_service');
   });
 
   it('each config has color, label, and dotColor', () => {
@@ -71,6 +72,11 @@ describe('getStatusMessage', () => {
   it('returns offline message with last location', () => {
     const v = makeVehicle({ status: 'offline', locationName: 'Garage' });
     expect(getStatusMessage(v)).toBe('Offline — Last seen at Garage');
+  });
+
+  it('returns in_service message with location', () => {
+    const v = makeVehicle({ status: 'in_service', locationName: 'Tesla Service Center' });
+    expect(getStatusMessage(v)).toBe('In Service at Tesla Service Center');
   });
 });
 
@@ -117,5 +123,6 @@ describe('isDriving', () => {
     expect(isDriving('parked')).toBe(false);
     expect(isDriving('charging')).toBe(false);
     expect(isDriving('offline')).toBe(false);
+    expect(isDriving('in_service')).toBe(false);
   });
 });

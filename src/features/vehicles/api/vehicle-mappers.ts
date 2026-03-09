@@ -35,6 +35,7 @@ const VEHICLE_STATUS_MAP: Record<string, VehicleStatus> = {
   parked: 'parked',
   charging: 'charging',
   offline: 'offline',
+  in_service: 'in_service',
 };
 
 function toVehicleStatus(prismaStatus: string): VehicleStatus {

@@ -42,6 +42,14 @@ describe('mapTeslaStateToVehicleStatus', () => {
   it('prioritizes charging over driving', () => {
     expect(mapTeslaStateToVehicleStatus('online', 'Charging', 30)).toBe('charging');
   });
+
+  it('returns in_service for "in_service" state', () => {
+    expect(mapTeslaStateToVehicleStatus('in_service', null, null)).toBe('in_service');
+  });
+
+  it('prioritizes in_service over charging', () => {
+    expect(mapTeslaStateToVehicleStatus('in_service', 'Charging', 0)).toBe('in_service');
+  });
 });
 
 // ─── celsiusToFahrenheit ─────────────────────────────────────────────────────
