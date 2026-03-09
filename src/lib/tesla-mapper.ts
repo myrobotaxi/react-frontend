@@ -36,6 +36,9 @@ export function mapTeslaStateToVehicleStatus(
   if (vehicleState === 'offline' || vehicleState === 'asleep') {
     return 'offline';
   }
+  if (vehicleState === 'in_service') {
+    return 'in_service';
+  }
   if (chargingState === 'Charging') {
     return 'charging';
   }

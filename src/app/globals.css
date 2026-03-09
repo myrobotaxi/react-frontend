@@ -58,6 +58,7 @@
   --color-status-parked: #3B82F6;
   --color-status-charging: #30D158;
   --color-status-offline: #6B6B6B;
+  --color-status-in-service: #FF9F0A;
 
   /* Battery Colors */
   --color-battery-high: #30D158;

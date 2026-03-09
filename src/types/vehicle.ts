@@ -1,5 +1,5 @@
 /** Vehicle statuses that map to status colors in the design system. */
-export type VehicleStatus = 'driving' | 'parked' | 'charging' | 'offline';
+export type VehicleStatus = 'driving' | 'parked' | 'charging' | 'offline' | 'in_service';
 
 /** A stop along a vehicle's active trip route. */
 export interface TripStop {

@@ -11,6 +11,7 @@ export const STATUS_CONFIG: StatusConfigMap = {
   parked: { color: '#3B82F6', label: 'Parked', dotColor: 'bg-status-parked' },
   charging: { color: '#30D158', label: 'Charging', dotColor: 'bg-status-charging' },
   offline: { color: '#6B6B6B', label: 'Offline', dotColor: 'bg-status-offline' },
+  in_service: { color: '#FF9F0A', label: 'In Service', dotColor: 'bg-status-in-service' },
 };
 
 /**
@@ -27,6 +28,8 @@ export function getStatusMessage(vehicle: Vehicle): string {
       return `Charging at ${vehicle.locationName} — ${vehicle.chargeLevel}%`;
     case 'offline':
       return `Offline — Last seen at ${vehicle.locationName}`;
+    case 'in_service':
+      return `In Service at ${vehicle.locationName}`;
   }
 }
 

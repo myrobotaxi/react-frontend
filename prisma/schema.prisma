@@ -87,6 +87,7 @@ enum VehicleStatus {
   parked
   charging
   offline
+  in_service
 }
 
 model TripStop {

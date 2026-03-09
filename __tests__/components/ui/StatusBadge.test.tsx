@@ -23,6 +23,11 @@ describe('StatusBadge', () => {
     expect(screen.getByText('Offline')).toBeInTheDocument();
   });
 
+  it('renders the in_service label', () => {
+    render(<StatusBadge status="in_service" />);
+    expect(screen.getByText('In Service')).toBeInTheDocument();
+  });
+
   it('applies the correct status color to the label', () => {
     const { container } = render(<StatusBadge status="driving" />);
     const labelSpan = container.querySelectorAll('span')[2]; // outer > dot, label
