@@ -70,12 +70,13 @@ export function BottomSheet({
 
 /**
  * Returns true when the half-state content should be visible.
- * True during half state OR when dragging past peek + 30px threshold.
+ * True during half/full state OR when dragging past peek + 30px threshold.
  */
 export function shouldShowHalfContent(
   sheetState: SheetState,
   isDragging: boolean,
   currentHeight: number,
 ): boolean {
-  return sheetState === 'half' || (isDragging && currentHeight > SHEET_PEEK_HEIGHT + 30);
+  return sheetState === 'half' || sheetState === 'full'
+    || (isDragging && currentHeight > SHEET_PEEK_HEIGHT + 30);
 }
