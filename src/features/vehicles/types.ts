@@ -7,7 +7,7 @@ import type { Vehicle } from '@/types/vehicle';
 import type { Drive } from '@/types/drive';
 
 /** Bottom sheet snap states. */
-export type SheetState = 'peek' | 'half';
+export type SheetState = 'peek' | 'half' | 'full';
 
 /** Vehicle data combined with its latest drive for the home screen. */
 export interface VehicleWithTrip {

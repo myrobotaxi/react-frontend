@@ -23,6 +23,12 @@ describe('useBottomSheet', () => {
     expect(result.current.sheetState).toBe('half');
   });
 
+  it('can be initialized with full state', () => {
+    const { result } = renderHook(() => useBottomSheet('full'));
+
+    expect(result.current.sheetState).toBe('full');
+  });
+
   it('returns touch event handlers', () => {
     const { result } = renderHook(() => useBottomSheet());
 
@@ -44,19 +50,58 @@ describe('useBottomSheet', () => {
     expect(result.current.onTouchMove).toBe(firstMove);
   });
 
-  it('toggles from peek to half on toggle()', () => {
+  it('toggles peek → half → full → peek', () => {
     const { result } = renderHook(() => useBottomSheet('peek'));
     expect(result.current.sheetState).toBe('peek');
 
     act(() => { result.current.toggle(); });
     expect(result.current.sheetState).toBe('half');
-  });
 
-  it('toggles from half back to peek on toggle()', () => {
-    const { result } = renderHook(() => useBottomSheet('half'));
+    act(() => { result.current.toggle(); });
+    expect(result.current.sheetState).toBe('full');
 
     act(() => { result.current.toggle(); });
     expect(result.current.sheetState).toBe('peek');
     expect(result.current.currentHeight).toBe(SHEET_PEEK_HEIGHT);
+  });
+
+  it('clamps drag height between floor and full height', () => {
+    const { result } = renderHook(() => useBottomSheet('peek'));
+
+    // Simulate drag start
+    const touchStart = { touches: [{ clientY: 600 }] } as unknown as React.TouchEvent;
+    act(() => { result.current.onTouchStart(touchStart); });
+    expect(result.current.isDragging).toBe(true);
+
+    // Drag far up — should clamp at full height, not exceed it
+    const touchMove = { touches: [{ clientY: 0 }] } as unknown as React.TouchEvent;
+    act(() => { result.current.onTouchMove(touchMove); });
+
+    const fullHeight = Math.round(window.innerHeight * 0.9);
+    expect(result.current.currentHeight).toBeLessThanOrEqual(fullHeight);
+
+    // Drag far down — should clamp at floor (120)
+    const touchMoveDown = { touches: [{ clientY: 1200 }] } as unknown as React.TouchEvent;
+    act(() => { result.current.onTouchMove(touchMoveDown); });
+    expect(result.current.currentHeight).toBe(120);
+  });
+
+  it('snaps to nearest state on release', () => {
+    const { result } = renderHook(() => useBottomSheet('peek'));
+
+    // Simulate drag to just past the peek/half midpoint
+    const touchStart = { touches: [{ clientY: 600 }] } as unknown as React.TouchEvent;
+    act(() => { result.current.onTouchStart(touchStart); });
+
+    // Drag up by enough to pass peek/half midpoint
+    const halfHeight = Math.round(window.innerHeight * 0.5);
+    const midpoint = (SHEET_PEEK_HEIGHT + halfHeight) / 2;
+    const dragDistance = midpoint - SHEET_PEEK_HEIGHT + 20; // past midpoint
+    const touchMove = { touches: [{ clientY: 600 - dragDistance }] } as unknown as React.TouchEvent;
+    act(() => { result.current.onTouchMove(touchMove); });
+
+    act(() => { result.current.onTouchEnd(); });
+    expect(result.current.sheetState).toBe('half');
+    expect(result.current.isDragging).toBe(false);
   });
 });

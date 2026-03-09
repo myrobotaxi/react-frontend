@@ -9,6 +9,9 @@ export const SHEET_PEEK_HEIGHT = 260;
 /** Bottom sheet half-state height as a fraction of viewport height. */
 export const SHEET_HALF_FRACTION = 0.5;
 
+/** Bottom sheet full-state height as a fraction of viewport height (leaves room for status bar). */
+export const SHEET_FULL_FRACTION = 0.9;
+
 /** Shared viewer bottom sheet peek height in pixels (no BottomNav overlap). */
 export const SHARED_SHEET_PEEK_HEIGHT = 200;
 

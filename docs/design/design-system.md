@@ -218,12 +218,13 @@ Fixed bottom tab navigation with 4 tabs.
 
 ### Bottom Sheet (Home / Live Map)
 
-Overlay panel with two snap states, using touch-drag with snap logic. The sheet computes a midpoint between peek and half heights; on touch end, if the dragged height exceeds the midpoint, it snaps to half, otherwise to peek.
+Overlay panel with three snap states, using touch-drag with snap-to-nearest logic. During drag, the sheet tracks the finger exactly (no transition). On release, it snaps to whichever snap point is closest to the current height.
 
 | State | Height | Description |
 |---|---|---|
 | Peek | 260px | Compact summary, always visible |
 | Half | 50vh (`window.innerHeight * 0.5`) | Extended details, scrollable |
+| Full | 90vh (`window.innerHeight * 0.9`) | Maximum height, leaves room for status bar |
 
 Content varies depending on whether the vehicle is **driving** or **non-driving** (parked/charging/offline):
 
