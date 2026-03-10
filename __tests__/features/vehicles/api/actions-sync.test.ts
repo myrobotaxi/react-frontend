@@ -103,6 +103,15 @@ afterEach(() => {
 // ─── syncVehiclesFromTesla ───────────────────────────────────────────────────
 
 describe('syncVehiclesFromTesla', () => {
+  it('returns 0 when user does not exist', async () => {
+    mockUserFindUnique.mockResolvedValueOnce(null);
+
+    const count = await syncVehiclesFromTesla('deleted-user');
+
+    expect(count).toBe(0);
+    expect(mockGetTeslaAccessToken).not.toHaveBeenCalled();
+  });
+
   it('returns 0 when no Tesla token exists', async () => {
     mockGetTeslaAccessToken.mockResolvedValue(null);
 
