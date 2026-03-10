@@ -30,6 +30,14 @@ export async function getSettings(): Promise<UserSettings | null> {
 
   const userId = session.user.id;
 
+  // Verify the user exists before upserting settings.
+  // A stale JWT may reference a deleted user (e.g. orphan cleanup).
+  const userExists = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!userExists) return null;
+
   const [settings, teslaAccount] = await Promise.all([
     prisma.settings.upsert({
       where: { userId },
