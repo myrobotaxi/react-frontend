@@ -56,6 +56,15 @@ function hasFullData(vehicleData: TeslaVehicleData): boolean {
  */
 export async function syncVehiclesFromTesla(userId: string): Promise<number> {
   const startTime = Date.now();
+
+  // Verify the user exists before syncing — a stale JWT may reference
+  // a deleted user (e.g. orphan cleanup from Tesla OAuth).
+  const userExists = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!userExists) return 0;
+
   const accessToken = await getTeslaAccessToken(userId);
   if (!accessToken) return 0;
 

@@ -52,9 +52,13 @@ const mockVehicleUpsert = vi.fn();
 const mockVehicleFindFirst = vi.fn();
 const mockVehicleFindMany = vi.fn();
 const mockSettingsUpsert = vi.fn();
+const mockUserFindUnique = vi.fn().mockResolvedValue({ id: 'user-1' });
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    user: {
+      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+    },
     vehicle: {
       upsert: (...args: unknown[]) => mockVehicleUpsert(...args),
       findFirst: (...args: unknown[]) => mockVehicleFindFirst(...args),
@@ -99,6 +103,15 @@ afterEach(() => {
 // ─── syncVehiclesFromTesla ───────────────────────────────────────────────────
 
 describe('syncVehiclesFromTesla', () => {
+  it('returns 0 when user does not exist', async () => {
+    mockUserFindUnique.mockResolvedValueOnce(null);
+
+    const count = await syncVehiclesFromTesla('deleted-user');
+
+    expect(count).toBe(0);
+    expect(mockGetTeslaAccessToken).not.toHaveBeenCalled();
+  });
+
   it('returns 0 when no Tesla token exists', async () => {
     mockGetTeslaAccessToken.mockResolvedValue(null);
 

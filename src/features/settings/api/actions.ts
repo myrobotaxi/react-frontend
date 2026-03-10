@@ -18,26 +18,49 @@ const NOTIFICATION_COLUMN_MAP: Record<keyof NotificationPreferences, string> = {
 };
 
 /**
+ * Validate the session and verify the user exists in the database.
+ * Returns the userId if valid, or null if not authenticated / user deleted.
+ * A stale JWT may reference a deleted user (e.g. orphan cleanup from Tesla OAuth).
+ */
+interface VerifiedUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+async function getVerifiedUser(): Promise<VerifiedUser | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true },
+  });
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    name: session.user.name ?? '',
+    email: session.user.email ?? '',
+  };
+}
+
+/**
  * Fetch the current user's settings, creating defaults if none exist.
  * Returns null if the user is not authenticated.
  */
 export async function getSettings(): Promise<UserSettings | null> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return null;
-  }
-
-  const userId = session.user.id;
+  const user = await getVerifiedUser();
+  if (!user) return null;
 
   const [settings, teslaAccount] = await Promise.all([
     prisma.settings.upsert({
-      where: { userId },
-      create: { userId },
+      where: { userId: user.id },
+      create: { userId: user.id },
       update: {},
     }),
     prisma.account.findFirst({
-      where: { userId, provider: 'tesla' },
+      where: { userId: user.id, provider: 'tesla' },
       select: { id: true },
     }),
   ]);
@@ -48,8 +71,8 @@ export async function getSettings(): Promise<UserSettings | null> {
   const teslaLinked = teslaAccount !== null;
 
   return {
-    name: session.user.name ?? '',
-    email: session.user.email ?? '',
+    name: user.name,
+    email: user.email,
     teslaLinked,
     teslaVehicleName: settings.teslaVehicleName ?? undefined,
     virtualKeyPaired: settings.virtualKeyPaired,
@@ -71,11 +94,8 @@ export async function getSettings(): Promise<UserSettings | null> {
 export async function updateSettings(
   prefs: Partial<NotificationPreferences>,
 ): Promise<void> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    throw new Error('Not authenticated');
-  }
+  const user = await getVerifiedUser();
+  if (!user) throw new Error('Not authenticated');
 
   const data: Record<string, boolean> = {};
 
@@ -91,8 +111,8 @@ export async function updateSettings(
   }
 
   await prisma.settings.upsert({
-    where: { userId: session.user.id },
-    create: { userId: session.user.id, ...data },
+    where: { userId: user.id },
+    create: { userId: user.id, ...data },
     update: data,
   });
 }
@@ -103,21 +123,16 @@ export async function updateSettings(
  * clears the teslaLinked flag and vehicle name in Settings.
  */
 export async function unlinkTesla(): Promise<void> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    throw new Error('Not authenticated');
-  }
-
-  const userId = session.user.id;
+  const user = await getVerifiedUser();
+  if (!user) throw new Error('Not authenticated');
 
   await prisma.$transaction([
-    prisma.vehicle.deleteMany({ where: { userId } }),
-    prisma.account.deleteMany({ where: { userId, provider: 'tesla' } }),
+    prisma.vehicle.deleteMany({ where: { userId: user.id } }),
+    prisma.account.deleteMany({ where: { userId: user.id, provider: 'tesla' } }),
     prisma.settings.upsert({
-      where: { userId },
+      where: { userId: user.id },
       create: {
-        userId,
+        userId: user.id,
         teslaLinked: false,
         teslaVehicleName: null,
         virtualKeyPaired: false,
@@ -142,22 +157,17 @@ export async function unlinkTesla(): Promise<void> {
  * Increments the reminder count and stores the first deferral timestamp.
  */
 export async function deferKeyPairing(): Promise<void> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    throw new Error('Not authenticated');
-  }
-
-  const userId = session.user.id;
+  const user = await getVerifiedUser();
+  if (!user) throw new Error('Not authenticated');
 
   const settings = await prisma.settings.upsert({
-    where: { userId },
-    create: { userId },
+    where: { userId: user.id },
+    create: { userId: user.id },
     update: {},
   });
 
   await prisma.settings.update({
-    where: { userId },
+    where: { userId: user.id },
     data: {
       keyPairingReminderCount: settings.keyPairingReminderCount + 1,
       keyPairingDeferredAt: settings.keyPairingDeferredAt ?? new Date(),
