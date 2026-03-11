@@ -5,6 +5,7 @@
 
 // Components
 export { SignInForm } from './components/SignInForm';
+export { BetaGate } from './components/BetaGate';
 
 // Hooks
 export { useAuth } from './hooks/use-auth';
