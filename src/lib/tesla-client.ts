@@ -176,7 +176,7 @@ export async function getVehicleData(
 export async function getFleetStatus(
   accessToken: string,
   vehicleId: number,
-): Promise<boolean> {
+): Promise<boolean | null> {
   try {
     const res = await fetchWithRetry(
       `${BASE_URL}/api/1/vehicles/${vehicleId}/fleet_status`,
@@ -188,7 +188,7 @@ export async function getFleetStatus(
     return data.response?.key_paired === true;
   } catch (err) {
     console.error(`[tesla-client] fleet_status for ${vehicleId} failed:`, err);
-    return false;
+    return null; // Unknown — caller should preserve existing DB value
   }
 }
 

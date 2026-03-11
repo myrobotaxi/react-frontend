@@ -51,6 +51,7 @@ vi.mock('@/lib/tesla-mapper', () => ({
 }));
 
 const mockVehicleUpsert = vi.fn();
+const mockVehicleFindUnique = vi.fn();
 const mockVehicleFindFirst = vi.fn();
 const mockVehicleFindMany = vi.fn();
 const mockSettingsUpsert = vi.fn();
@@ -63,6 +64,7 @@ vi.mock('@/lib/prisma', () => ({
     },
     vehicle: {
       upsert: (...args: unknown[]) => mockVehicleUpsert(...args),
+      findUnique: (...args: unknown[]) => mockVehicleFindUnique(...args),
       findFirst: (...args: unknown[]) => mockVehicleFindFirst(...args),
       findMany: (...args: unknown[]) => mockVehicleFindMany(...args),
     },
@@ -222,6 +224,34 @@ describe('syncVehiclesFromTesla', () => {
       expect.objectContaining({
         create: expect.objectContaining({ virtualKeyPaired: false }),
         update: expect.objectContaining({ virtualKeyPaired: false }),
+      }),
+    );
+  });
+
+  it('preserves existing virtualKeyPaired when fleet_status fails', async () => {
+    mockGetTeslaAccessToken.mockResolvedValue('test-token');
+    mockListVehicles.mockResolvedValue([
+      { id: 123, vehicle_id: 456, vin: 'VIN1', display_name: 'Car 1', state: 'online' },
+    ]);
+    mockGetVehicleData.mockResolvedValue({
+      id: 123,
+      vin: 'VIN1',
+      state: 'online',
+      charge_state: { battery_level: 80 },
+    });
+    // fleet_status fails → returns null
+    mockGetFleetStatus.mockResolvedValue(null);
+    // Existing DB record has virtualKeyPaired: true
+    mockVehicleFindUnique.mockResolvedValue({ virtualKeyPaired: true });
+    mockVehicleUpsert.mockResolvedValue({});
+    mockSettingsUpsert.mockResolvedValue({});
+
+    const count = await syncVehiclesFromTesla('user-1');
+
+    expect(count).toBe(1);
+    expect(mockVehicleUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ virtualKeyPaired: true }),
       }),
     );
   });
