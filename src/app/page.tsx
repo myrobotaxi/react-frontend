@@ -30,12 +30,11 @@ export default async function RootPage() {
     return <HomeEmptyScreen onLinkTesla={handleLinkTesla} />;
   }
 
-  const virtualKeyPaired = settings?.virtualKeyPaired ?? false;
   const showPairingModal = settings ? shouldShowPairingModal(settings) : false;
 
   return (
     <div className="min-h-screen bg-bg-primary">
-      <HomeScreen vehicles={vehicles} drives={MOCK_DRIVES} virtualKeyPaired={virtualKeyPaired} onSync={syncVehicles} />
+      <HomeScreen vehicles={vehicles} drives={MOCK_DRIVES} onSync={syncVehicles} />
       {showPairingModal && (
         <PairingModalTrigger autoShow onDefer={handleDeferPairing} />
       )}

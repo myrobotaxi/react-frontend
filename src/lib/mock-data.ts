@@ -29,6 +29,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
     lastUpdated: '3s ago',
     odometerMiles: 12847,
     fsdMilesToday: 15.3,
+    virtualKeyPaired: true,
     destinationName: 'Domain Northside',
     destinationAddress: '11506 Century Oaks Terrace, Austin, TX',
     etaMinutes: 23,
@@ -59,6 +60,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
     lastUpdated: '12s ago',
     odometerMiles: 3201,
     fsdMilesToday: 4.9,
+    virtualKeyPaired: true,
   },
 ];
 

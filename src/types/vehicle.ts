@@ -30,6 +30,7 @@ export interface Vehicle {
   lastUpdated: string;
   odometerMiles: number;
   fsdMilesToday: number;
+  virtualKeyPaired: boolean;
   /** Active trip fields — present only when status === 'driving'. */
   destinationName?: string;
   destinationAddress?: string;

@@ -76,7 +76,8 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
     return 0;
   }
   let syncedCount = 0;
-  let virtualKeyPaired = false;
+  let pairedCount = 0;
+  let totalCount = 0;
 
   for (const listItem of teslaVehicles) {
     try {
@@ -94,7 +95,8 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
       }
 
       const fullData = hasFullData(vehicleData);
-      if (fullData) virtualKeyPaired = true;
+      totalCount++;
+      if (fullData) pairedCount++;
 
       const upsertData = mapTeslaVehicleToUpsertData(listItem, vehicleData);
       const teslaVehicleId = upsertData.teslaVehicleId;
@@ -111,6 +113,7 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
         status: upsertData.status,
         chargeLevel: upsertData.chargeLevel,
         estimatedRange: upsertData.estimatedRange,
+        virtualKeyPaired: fullData,
         lastUpdated: new Date(),
       };
 
@@ -136,6 +139,7 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
           userId,
           color: '',
           licensePlate: '',
+          virtualKeyPaired: fullData,
           lastUpdated: new Date(),
         },
         update: updateData,
@@ -150,11 +154,12 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
   // Isolated from the vehicle sync so a settings error doesn't prevent
   // returning the successful vehicle sync count.
   if (teslaVehicles.length > 0) {
+    const allPaired = pairedCount > 0 && pairedCount === totalCount;
     try {
       await prisma.settings.upsert({
         where: { userId },
-        create: { userId, virtualKeyPaired },
-        update: { virtualKeyPaired },
+        create: { userId, virtualKeyPaired: allPaired },
+        update: { virtualKeyPaired: allPaired },
       });
     } catch (err) {
       console.error('[sync] Failed to update settings for user', userId, err);

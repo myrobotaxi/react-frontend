@@ -77,6 +77,7 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
     lastUpdated: formatRelativeTime(prismaVehicle.lastUpdated),
     odometerMiles: prismaVehicle.odometerMiles,
     fsdMilesToday: prismaVehicle.fsdMilesToday,
+    virtualKeyPaired: prismaVehicle.virtualKeyPaired,
   };
 
   // Only include optional trip fields when present
