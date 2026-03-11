@@ -94,6 +94,16 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
         }
       }
 
+      const presentCategories = [
+        vehicleData.charge_state ? 'charge_state' : null,
+        vehicleData.climate_state ? 'climate_state' : null,
+        vehicleData.drive_state ? 'drive_state' : null,
+        vehicleData.vehicle_state ? 'vehicle_state' : null,
+      ].filter(Boolean);
+      console.log(
+        `[sync] Vehicle ${listItem.id} (${listItem.vin}): state=${vehicleData.state}, in_service=${vehicleData.in_service}, categories=[${presentCategories.join(', ')}]`,
+      );
+
       const fullData = hasFullData(vehicleData);
       totalCount++;
       if (fullData) pairedCount++;
