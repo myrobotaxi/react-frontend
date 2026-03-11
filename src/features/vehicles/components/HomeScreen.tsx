@@ -31,8 +31,6 @@ export interface HomeScreenProps {
   vehicles: Vehicle[];
   /** All drives (used to find the latest drive for the current vehicle). */
   drives: Drive[];
-  /** Whether the Tesla virtual key is paired with the vehicle. */
-  virtualKeyPaired?: boolean;
   /** Server action to trigger a background sync from Tesla. */
   onSync?: () => Promise<void>;
 }
@@ -41,7 +39,7 @@ export interface HomeScreenProps {
  * Main home screen orchestrator — full-screen map with bottom sheet.
  * Coordinates VehicleMap, VehicleDotSelector, BottomSheet, and peek/half content.
  */
-export function HomeScreen({ vehicles, drives, virtualKeyPaired = true, onSync }: HomeScreenProps) {
+export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
   const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const sheet = useBottomSheet('peek');
@@ -151,7 +149,7 @@ export function HomeScreen({ vehicles, drives, virtualKeyPaired = true, onSync }
         onToggle={sheet.toggle}
       >
         {/* Setup banner — shown when virtual key is not paired */}
-        {!virtualKeyPaired && !bannerDismissed && (
+        {!vehicle.virtualKeyPaired && !bannerDismissed && (
           <div className="px-6 mb-4">
             <SetupBanner
               title="Complete Setup"

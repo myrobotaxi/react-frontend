@@ -145,10 +145,11 @@ describe('syncVehiclesFromTesla', () => {
     expect(mockVehicleUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { teslaVehicleId: '123' },
-        create: expect.objectContaining({ userId: 'user-1' }),
+        create: expect.objectContaining({ userId: 'user-1', virtualKeyPaired: true }),
+        update: expect.objectContaining({ virtualKeyPaired: true }),
       }),
     );
-    // drive_state present → virtualKeyPaired should be true
+    // drive_state present → all vehicles paired → Settings.virtualKeyPaired true
     expect(mockSettingsUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { userId: 'user-1' },
@@ -206,6 +207,45 @@ describe('syncVehiclesFromTesla', () => {
     const count = await syncVehiclesFromTesla('user-1');
 
     expect(count).toBe(1);
+    // Vehicle upsert should include virtualKeyPaired: false
+    expect(mockVehicleUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ virtualKeyPaired: false }),
+        update: expect.objectContaining({ virtualKeyPaired: false }),
+      }),
+    );
+    expect(mockSettingsUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ virtualKeyPaired: false }),
+        update: expect.objectContaining({ virtualKeyPaired: false }),
+      }),
+    );
+  });
+
+  it('sets Settings.virtualKeyPaired false when only some vehicles are paired', async () => {
+    mockGetTeslaAccessToken.mockResolvedValue('test-token');
+    mockListVehicles.mockResolvedValue([
+      { id: 1, vehicle_id: 10, vin: 'VIN1', display_name: 'Car 1', state: 'online' },
+      { id: 2, vehicle_id: 20, vin: 'VIN2', display_name: 'Car 2', state: 'online' },
+    ]);
+    // First vehicle has full data (paired), second doesn't
+    mockGetVehicleData
+      .mockResolvedValueOnce({
+        id: 1, vin: 'VIN1', state: 'online',
+        drive_state: {}, charge_state: {}, vehicle_state: {}, climate_state: {},
+      })
+      .mockResolvedValueOnce({
+        id: 2, vin: 'VIN2', state: 'online',
+        charge_state: { battery_level: 50 },
+        // No drive_state — not paired
+      });
+    mockVehicleUpsert.mockResolvedValue({});
+    mockSettingsUpsert.mockResolvedValue({});
+
+    const count = await syncVehiclesFromTesla('user-1');
+
+    expect(count).toBe(2);
+    // Settings should be false because not ALL vehicles are paired
     expect(mockSettingsUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({ virtualKeyPaired: false }),

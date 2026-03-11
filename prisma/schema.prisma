@@ -67,6 +67,7 @@ model Vehicle {
   exteriorTemp     Int           @default(0)
   odometerMiles    Int           @default(0)
   fsdMilesToday    Float         @default(0)
+  virtualKeyPaired Boolean       @default(false)
   destinationName  String?
   destinationAddress String?
   etaMinutes       Int?

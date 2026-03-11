@@ -24,6 +24,7 @@ const vehicle: Vehicle = {
   lastUpdated: '2024-01-01T12:00:00Z',
   odometerMiles: 15000,
   fsdMilesToday: 0,
+  virtualKeyPaired: true,
 };
 
 describe('VehicleDetailsBlock', () => {

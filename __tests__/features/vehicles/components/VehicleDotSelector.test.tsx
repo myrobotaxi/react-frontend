@@ -24,6 +24,7 @@ const makeVehicle = (id: string, name: string): Vehicle => ({
   lastUpdated: '2024-01-01T12:00:00Z',
   odometerMiles: 15000,
   fsdMilesToday: 0,
+  virtualKeyPaired: true,
 });
 
 const vehicles = [makeVehicle('v1', 'Model Y'), makeVehicle('v2', 'Model 3')];
