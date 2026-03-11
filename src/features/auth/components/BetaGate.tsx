@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { validateBetaPassword } from '../api/validate-beta-password';
@@ -18,9 +18,18 @@ export function BetaGate() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [shake, setShake] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     inputRef.current?.focus();
+    const timers = timersRef.current;
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const scheduleTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(fn, ms);
+    timersRef.current.push(id);
+    return id;
   }, []);
 
   async function handleSubmit(e: FormEvent) {
@@ -34,11 +43,11 @@ export function BetaGate() {
 
     if (result.success) {
       setShowSuccess(true);
-      setTimeout(() => router.push('/signin'), 800);
+      scheduleTimeout(() => router.push('/signin'), 800);
     } else {
       setError(result.error ?? 'Invalid access code');
       setShake(true);
-      setTimeout(() => setShake(false), 500);
+      scheduleTimeout(() => setShake(false), 500);
       setIsSubmitting(false);
     }
   }

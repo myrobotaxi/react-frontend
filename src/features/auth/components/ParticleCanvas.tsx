@@ -66,28 +66,31 @@ export function ParticleCanvas({ accelerate = false }: ParticleCanvasProps) {
     let h = window.innerHeight;
     const dpr = window.devicePixelRatio || 1;
 
+    const c = canvas;
+    const g = ctx;
+
     function resize() {
       w = window.innerWidth;
       h = window.innerHeight;
-      canvas!.width = w * dpr;
-      canvas!.height = h * dpr;
-      canvas!.style.width = `${w}px`;
-      canvas!.style.height = `${h}px`;
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.width = w * dpr;
+      c.height = h * dpr;
+      c.style.width = `${w}px`;
+      c.style.height = `${h}px`;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     resize();
 
-    let particles = createParticles(w, h);
+    const particles = createParticles(w, h);
 
     if (prefersReducedMotion) {
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, w, h);
-      drawVignette(ctx, w, h);
+      g.fillStyle = '#000000';
+      g.fillRect(0, 0, w, h);
+      drawVignette(g, w, h);
       for (const p of particles) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
-        ctx.fill();
+        g.beginPath();
+        g.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        g.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+        g.fill();
       }
       return;
     }
@@ -95,9 +98,9 @@ export function ParticleCanvas({ accelerate = false }: ParticleCanvasProps) {
     let frameId: number;
 
     function animate() {
-      ctx!.fillStyle = '#000000';
-      ctx!.fillRect(0, 0, w, h);
-      drawVignette(ctx!, w, h);
+      g.fillStyle = '#000000';
+      g.fillRect(0, 0, w, h);
+      drawVignette(g, w, h);
 
       const cx = w / 2;
       const cy = h / 2;
@@ -119,10 +122,10 @@ export function ParticleCanvas({ accelerate = false }: ParticleCanvasProps) {
         if (p.y < -10) p.y = h + 10;
         if (p.y > h + 10) p.y = -10;
 
-        ctx!.beginPath();
-        ctx!.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx!.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
-        ctx!.fill();
+        g.beginPath();
+        g.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        g.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+        g.fill();
       }
 
       frameId = requestAnimationFrame(animate);

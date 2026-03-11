@@ -8,6 +8,8 @@ export const BETA_COOKIE_NAME = 'beta-access';
 export const BETA_COOKIE_VALUE = 'granted';
 export const BETA_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 
+// Paths that bypass the beta gate. Some overlap with PUBLIC_PATHS in proxy.ts
+// (which controls auth bypass) — keep both in sync when adding new public routes.
 const BETA_EXCLUDED_PATHS = ['/beta', '/api/auth', '/.well-known'];
 
 /**

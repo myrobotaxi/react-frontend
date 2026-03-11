@@ -1,5 +1,7 @@
 'use server';
 
+import { timingSafeEqual } from 'crypto';
+
 import { cookies, headers } from 'next/headers';
 
 import {
@@ -35,7 +37,13 @@ export async function validateBetaPassword(
   }
 
   const expected = process.env.BETA_ACCESS_PASSWORD;
-  if (!expected || password !== expected) {
+  if (!expected) {
+    return { success: false, error: 'Invalid access code' };
+  }
+
+  const a = Buffer.from(password);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return { success: false, error: 'Invalid access code' };
   }
 
