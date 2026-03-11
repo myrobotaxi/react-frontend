@@ -41,7 +41,7 @@ export interface HomeScreenProps {
  */
 export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
   const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [dismissedVehicleIds, setDismissedVehicleIds] = useState<Set<string>>(new Set());
   const sheet = useBottomSheet('peek');
   const syncAction = useMemo(() => onSync ?? (() => Promise.resolve()), [onSync]);
   const isAutoSyncing = useBackgroundSync(syncAction);
@@ -149,14 +149,14 @@ export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
         onToggle={sheet.toggle}
       >
         {/* Setup banner — shown when virtual key is not paired */}
-        {!vehicle.virtualKeyPaired && !bannerDismissed && (
+        {!vehicle.virtualKeyPaired && !dismissedVehicleIds.has(vehicle.id) && (
           <div className="px-6 mb-4">
             <SetupBanner
               title="Complete Setup"
               description="Pair your virtual key to unlock live location, temperatures, and vehicle name"
               actionLabel="Pair Now"
               onAction={() => window.open(TESLA_KEY_PAIRING_URL, '_blank')}
-              onDismiss={() => setBannerDismissed(true)}
+              onDismiss={() => setDismissedVehicleIds((prev) => new Set(prev).add(vehicle.id))}
             />
           </div>
         )}
