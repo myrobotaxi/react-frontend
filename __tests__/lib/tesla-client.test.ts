@@ -10,6 +10,7 @@ import {
   fetchWithRetry,
   listVehicles,
   getVehicleData,
+  getFleetStatus,
   wakeVehicle,
 } from '@/lib/tesla-client';
 
@@ -197,6 +198,74 @@ describe('getVehicleData', () => {
     expect(url).toContain('drive_state');
     expect(url).toContain('vehicle_state');
     expect(url).toContain('climate_state');
+  });
+});
+
+// ─── getFleetStatus ─────────────────────────────────────────────────────────
+
+describe('getFleetStatus', () => {
+  it('sends POST to batch fleet_status endpoint with VIN in body', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          response: { '5YJSA1E26HF123456': { key_paired: true } },
+        }),
+      }),
+    );
+
+    const result = await getFleetStatus('test-token', '5YJSA1E26HF123456');
+
+    expect(result).toBe(true);
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE}/api/1/vehicles/fleet_status`,
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ vins: ['5YJSA1E26HF123456'] }),
+      }),
+    );
+  });
+
+  it('returns false when key_paired is false', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          response: { 'VIN1': { key_paired: false } },
+        }),
+      }),
+    );
+
+    const result = await getFleetStatus('test-token', 'VIN1');
+    expect(result).toBe(false);
+  });
+
+  it('returns false when VIN is missing from response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ response: {} }),
+      }),
+    );
+
+    const result = await getFleetStatus('test-token', 'VIN1');
+    expect(result).toBe(false);
+  });
+
+  it('returns null on API error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 403 }),
+    );
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await getFleetStatus('test-token', 'VIN1');
+
+    expect(result).toBeNull();
+    consoleSpy.mockRestore();
   });
 });
 
