@@ -4,6 +4,7 @@ import {
   mapTeslaStateToVehicleStatus,
   celsiusToFahrenheit,
   parseModelFromVin,
+  parseGearPosition,
   mapTeslaVehicleToUpsertData,
 } from '@/lib/tesla-mapper';
 import type { TeslaVehicleListItem, TeslaVehicleData } from '@/lib/tesla-client';
@@ -138,6 +139,38 @@ describe('parseModelFromVin', () => {
   });
 });
 
+// ─── parseGearPosition ──────────────────────────────────────────────────────
+
+describe('parseGearPosition', () => {
+  it('returns P for "P"', () => {
+    expect(parseGearPosition('P')).toBe('P');
+  });
+
+  it('returns R for "R"', () => {
+    expect(parseGearPosition('R')).toBe('R');
+  });
+
+  it('returns N for "N"', () => {
+    expect(parseGearPosition('N')).toBe('N');
+  });
+
+  it('returns D for "D"', () => {
+    expect(parseGearPosition('D')).toBe('D');
+  });
+
+  it('returns null for null', () => {
+    expect(parseGearPosition(null)).toBeNull();
+  });
+
+  it('returns null for unknown string', () => {
+    expect(parseGearPosition('X')).toBeNull();
+  });
+
+  it('returns null for empty string', () => {
+    expect(parseGearPosition('')).toBeNull();
+  });
+});
+
 // ─── mapTeslaVehicleToUpsertData ─────────────────────────────────────────────
 
 describe('mapTeslaVehicleToUpsertData', () => {
@@ -190,10 +223,29 @@ describe('mapTeslaVehicleToUpsertData', () => {
     expect(result.estimatedRange).toBe(246);
     expect(result.status).toBe('driving');
     expect(result.speed).toBe(65);
+    expect(result.gearPosition).toBe('D');
     expect(result.heading).toBe(280);
     expect(result.latitude).toBe(30.325);
     expect(result.longitude).toBe(-97.738);
     expect(result.odometerMiles).toBe(12847);
+  });
+
+  it('maps gearPosition from shift_state', () => {
+    const parkedData: TeslaVehicleData = {
+      ...vehicleData,
+      drive_state: { ...vehicleData.drive_state!, shift_state: 'P', speed: 0 },
+    };
+    const result = mapTeslaVehicleToUpsertData(listItem, parkedData);
+    expect(result.gearPosition).toBe('P');
+  });
+
+  it('maps null gearPosition when shift_state is null', () => {
+    const nullShiftData: TeslaVehicleData = {
+      ...vehicleData,
+      drive_state: { ...vehicleData.drive_state!, shift_state: null, speed: 0 },
+    };
+    const result = mapTeslaVehicleToUpsertData(listItem, nullShiftData);
+    expect(result.gearPosition).toBeNull();
   });
 
   it('converts temperatures from Celsius to Fahrenheit', () => {

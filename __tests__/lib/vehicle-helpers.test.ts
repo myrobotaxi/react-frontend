@@ -5,6 +5,7 @@ import {
   getBatteryColor,
   getBatteryTextColor,
   isDriving,
+  resolveGear,
 } from '@/lib/vehicle-helpers';
 import type { Vehicle } from '@/types/vehicle';
 
@@ -21,6 +22,7 @@ function makeVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     estimatedRange: 245,
     status: 'parked',
     speed: 0,
+    gearPosition: null,
     heading: 0,
     locationName: 'Home',
     locationAddress: '123 Main St',
@@ -79,6 +81,16 @@ describe('getStatusMessage', () => {
     const v = makeVehicle({ status: 'in_service', locationName: 'Tesla Service Center' });
     expect(getStatusMessage(v)).toBe('In Service at Tesla Service Center');
   });
+
+  it('returns reversing message when gear is R', () => {
+    const v = makeVehicle({ status: 'driving', speed: 5, locationName: 'Driveway', gearPosition: 'R' });
+    expect(getStatusMessage(v)).toBe('Reversing — 5 mph at Driveway');
+  });
+
+  it('returns driving message when gear is D', () => {
+    const v = makeVehicle({ status: 'driving', speed: 65, locationName: 'I-35 North', gearPosition: 'D' });
+    expect(getStatusMessage(v)).toBe('Driving — 65 mph on I-35 North');
+  });
 });
 
 describe('getBatteryColor', () => {
@@ -125,5 +137,34 @@ describe('isDriving', () => {
     expect(isDriving('charging')).toBe(false);
     expect(isDriving('offline')).toBe(false);
     expect(isDriving('in_service')).toBe(false);
+  });
+});
+
+describe('resolveGear', () => {
+  it('returns the gear when explicitly provided', () => {
+    expect(resolveGear('D', 'driving')).toBe('D');
+    expect(resolveGear('P', 'parked')).toBe('P');
+    expect(resolveGear('R', 'driving')).toBe('R');
+    expect(resolveGear('N', 'parked')).toBe('N');
+  });
+
+  it('infers D when null and status is driving', () => {
+    expect(resolveGear(null, 'driving')).toBe('D');
+  });
+
+  it('infers P when null and status is parked', () => {
+    expect(resolveGear(null, 'parked')).toBe('P');
+  });
+
+  it('infers P when null and status is charging', () => {
+    expect(resolveGear(null, 'charging')).toBe('P');
+  });
+
+  it('infers P when null and status is offline', () => {
+    expect(resolveGear(null, 'offline')).toBe('P');
+  });
+
+  it('infers P when null and status is in_service', () => {
+    expect(resolveGear(null, 'in_service')).toBe('P');
   });
 });

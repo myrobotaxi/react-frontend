@@ -1,6 +1,12 @@
 /** Vehicle statuses that map to status colors in the design system. */
 export type VehicleStatus = 'driving' | 'parked' | 'charging' | 'offline' | 'in_service';
 
+/** Valid gear positions from Tesla drive_state.shift_state. */
+export type GearPosition = 'P' | 'R' | 'N' | 'D';
+
+/** Set of valid gear position strings for runtime validation at data boundaries. */
+export const VALID_GEARS = new Set<string>(['P', 'R', 'N', 'D']);
+
 /** A stop along a vehicle's active trip route. */
 export interface TripStop {
   name: string;
@@ -20,6 +26,7 @@ export interface Vehicle {
   estimatedRange: number;
   status: VehicleStatus;
   speed: number;
+  gearPosition: GearPosition | null;
   heading: number;
   locationName: string;
   locationAddress: string;

@@ -3,7 +3,7 @@
  * Maps vehicle state to display strings and Tailwind color classes.
  */
 
-import type { Vehicle, VehicleStatus, StatusConfigMap } from '@/types/vehicle';
+import type { Vehicle, VehicleStatus, GearPosition, StatusConfigMap } from '@/types/vehicle';
 
 /** Status configuration for UI rendering — maps status to color and label. */
 export const STATUS_CONFIG: StatusConfigMap = {
@@ -16,12 +16,18 @@ export const STATUS_CONFIG: StatusConfigMap = {
 
 /**
  * Returns a human-readable status message for a vehicle.
+ * Includes gear position context when available.
  * @param vehicle - The vehicle to describe
  */
 export function getStatusMessage(vehicle: Vehicle): string {
   switch (vehicle.status) {
-    case 'driving':
+    case 'driving': {
+      const gear = vehicle.gearPosition;
+      if (gear === 'R') {
+        return `Reversing — ${vehicle.speed} mph at ${vehicle.locationName}`;
+      }
       return `Driving — ${vehicle.speed} mph on ${vehicle.locationName}`;
+    }
     case 'parked':
       return `Parked at ${vehicle.locationName}`;
     case 'charging':
@@ -58,4 +64,19 @@ export function getBatteryTextColor(level: number, status?: VehicleStatus): stri
 /** Returns true when the vehicle is actively driving. */
 export function isDriving(status: VehicleStatus): boolean {
   return status === 'driving';
+}
+
+/**
+ * Resolves the displayed gear from the raw shift_state value.
+ * Tesla returns null for shift_state when parked (engine off), so we
+ * infer P from the vehicle status in that case.
+ */
+export function resolveGear(
+  gearPosition: GearPosition | null,
+  status: VehicleStatus,
+): GearPosition {
+  if (gearPosition !== null) return gearPosition;
+  // Tesla returns null when the car is parked with the motor off
+  if (status === 'driving') return 'D';
+  return 'P';
 }
