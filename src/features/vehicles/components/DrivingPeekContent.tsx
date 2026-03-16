@@ -44,7 +44,7 @@ export function DrivingPeekContent({
       <TripProgressBar
         progress={tripProgress}
         stops={vehicle.stops ?? []}
-        originLabel={currentDrive?.startLocation ?? 'Origin'}
+        originLabel={currentDrive?.startAddress || currentDrive?.startLocation || 'Origin'}
         destinationLabel={vehicle.destinationName ?? 'Destination'}
       />
 

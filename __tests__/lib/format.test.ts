@@ -11,6 +11,7 @@ import {
   formatEnergy,
   formatTime,
   formatLocation,
+  parseTime12h,
 } from '@/lib/format';
 
 /** Returns local date as YYYY-MM-DD (not UTC). */
@@ -149,6 +150,41 @@ describe('formatTime', () => {
 
   it('handles invalid ISO strings gracefully', () => {
     expect(formatTime('not-a-date')).toBe('not-a-date');
+  });
+});
+
+describe('parseTime12h', () => {
+  it('parses AM times correctly', () => {
+    expect(parseTime12h('9:07 AM')).toBe(9 * 60 + 7);
+  });
+
+  it('parses PM times correctly', () => {
+    expect(parseTime12h('9:07 PM')).toBe(21 * 60 + 7);
+  });
+
+  it('parses 12:00 AM as midnight (0)', () => {
+    expect(parseTime12h('12:00 AM')).toBe(0);
+  });
+
+  it('parses 12:00 PM as noon (720)', () => {
+    expect(parseTime12h('12:00 PM')).toBe(720);
+  });
+
+  it('parses 12:30 PM correctly', () => {
+    expect(parseTime12h('12:30 PM')).toBe(750);
+  });
+
+  it('returns 0 for unparseable strings', () => {
+    expect(parseTime12h('')).toBe(0);
+    expect(parseTime12h('not a time')).toBe(0);
+  });
+
+  it('sorts 10:30 AM after 9:00 AM (unlike localeCompare)', () => {
+    expect(parseTime12h('10:30 AM')).toBeGreaterThan(parseTime12h('9:00 AM'));
+  });
+
+  it('sorts 2:15 PM after 10:30 AM', () => {
+    expect(parseTime12h('2:15 PM')).toBeGreaterThan(parseTime12h('10:30 AM'));
   });
 });
 

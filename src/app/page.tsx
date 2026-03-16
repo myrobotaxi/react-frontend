@@ -1,7 +1,7 @@
 import { signIn } from '@/auth';
 import { HomeScreen, HomeEmptyScreen, HomeSyncingScreen, getCachedVehicles, getVehicles, syncVehicles } from '@/features/vehicles';
 import { getSettings, deferKeyPairing, shouldShowPairingModal, PairingModalTrigger } from '@/features/settings';
-import { MOCK_DRIVES } from '@/lib/mock-data';
+import { getDrives } from '@/features/drives';
 import { BottomNav } from '@/components/layout/BottomNav';
 
 /** Server action to initiate Tesla OAuth account linking. */
@@ -21,7 +21,11 @@ async function handleDeferPairing() {
  * Auth gate will redirect unauthenticated users to /signin once NextAuth is integrated.
  */
 export default async function RootPage() {
-  const [cachedVehicles, settings] = await Promise.all([getCachedVehicles(), getSettings()]);
+  const [cachedVehicles, settings, drives] = await Promise.all([
+    getCachedVehicles(),
+    getSettings(),
+    getDrives(),
+  ]);
 
   // If no cached vehicles, try a full sync — the user may have just linked Tesla
   const vehicles = cachedVehicles.length === 0 ? await getVehicles() : cachedVehicles;
@@ -39,7 +43,7 @@ export default async function RootPage() {
 
   return (
     <div className="min-h-screen bg-bg-primary">
-      <HomeScreen vehicles={vehicles} drives={MOCK_DRIVES} onSync={syncVehicles} />
+      <HomeScreen vehicles={vehicles} drives={drives} onSync={syncVehicles} />
       {showPairingModal && (
         <PairingModalTrigger autoShow onDefer={handleDeferPairing} />
       )}

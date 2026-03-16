@@ -12,6 +12,7 @@
 
 import type { Prisma } from '@prisma/client';
 
+import { DRIVE_IN_PROGRESS_SENTINEL } from '@/lib/drive-utils';
 import { totalDistanceFromRoutePoints } from '@/lib/geo';
 import type { RoutePoint } from '@/lib/geo';
 import { prisma } from '@/lib/prisma';
@@ -64,11 +65,12 @@ export async function detectAndRecordDrive(
   const hasValidCoords = input.latitude !== 0 || input.longitude !== 0;
 
   // Find active drive (no endTime) for this vehicle.
-  // We use endTime: '' (empty string) as the "in progress" sentinel because
-  // the Prisma schema defines endTime as a required String (not nullable).
-  // If the schema ever changes to allow null, update this query accordingly.
+  // We use DRIVE_IN_PROGRESS_SENTINEL (empty string) as the "in progress"
+  // sentinel because the Prisma schema defines endTime as a required String
+  // (not nullable). If the schema ever changes to allow null, update this
+  // query accordingly.
   const activeDrive = await prisma.drive.findFirst({
-    where: { vehicleId: input.vehicleId, endTime: '' },
+    where: { vehicleId: input.vehicleId, endTime: DRIVE_IN_PROGRESS_SENTINEL },
   });
 
   if (!activeDrive && isDriving && hasValidCoords) {
@@ -94,7 +96,7 @@ async function startDrive(input: DriveDetectionInput): Promise<void> {
       vehicleId: input.vehicleId,
       date: now.toISOString().split('T')[0],
       startTime: now.toISOString(),
-      endTime: '', // Empty string signals "in progress"
+      endTime: DRIVE_IN_PROGRESS_SENTINEL, // Signals "in progress"
       startLocation: `${input.latitude},${input.longitude}`,
       startAddress: '', // Can be reverse geocoded later
       endLocation: '',
