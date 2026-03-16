@@ -51,26 +51,22 @@ export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
   const vehicle = vehicles[currentVehicleIndex];
 
   // Find the active drive for the current vehicle.
-  // When driving, match by destination name (the current trip).
-  // Otherwise fall back to the most recent drive by date.
+  // An in-progress drive has endTime === '' (sentinel from drive-detection.ts).
+  // If none is in progress, fall back to the most recent completed drive.
   const currentDrive = useMemo(() => {
     const vehicleDrives = drives.filter((d) => d.vehicleId === vehicle.id);
 
-    // Match by destination when actively driving
-    if (vehicle.status === 'driving' && vehicle.destinationName) {
-      const activeDrive = vehicleDrives.find(
-        (d) => d.endLocation === vehicle.destinationName,
-      );
-      if (activeDrive) return activeDrive;
-    }
+    // Prefer the in-progress drive (endTime is empty string)
+    const activeDrive = vehicleDrives.find((d) => d.endTime === '');
+    if (activeDrive) return activeDrive;
 
-    // Fallback: sort by date descending, then by parsed time descending
+    // Fallback: most recent completed drive by date descending, startTime descending
     vehicleDrives.sort((a, b) => {
       if (a.date !== b.date) return b.date.localeCompare(a.date);
-      return parseTime12h(b.startTime) - parseTime12h(a.startTime);
+      return b.startTime.localeCompare(a.startTime);
     });
     return vehicleDrives[0] as Drive | undefined;
-  }, [vehicle.id, vehicle.status, vehicle.destinationName, drives]);
+  }, [vehicle.id, drives]);
 
   const isDriving = vehicle.status === 'driving';
   const routePoints = currentDrive?.routePoints;
@@ -186,18 +182,6 @@ export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
       </BottomSheet>
     </div>
   );
-}
-
-/** Parses "2:15 PM" style time strings into minutes since midnight for comparison. */
-function parseTime12h(time: string): number {
-  const match = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) return 0;
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const isPM = match[3].toUpperCase() === 'PM';
-  if (isPM && hours !== 12) hours += 12;
-  if (!isPM && hours === 12) hours = 0;
-  return hours * 60 + minutes;
 }
 
 /** Subtle compass direction labels overlaying the map. */

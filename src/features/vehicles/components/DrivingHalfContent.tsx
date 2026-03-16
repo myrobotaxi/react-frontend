@@ -25,7 +25,7 @@ export function DrivingHalfContent({ vehicle, currentDrive }: DrivingHalfContent
       <div className="mb-5">
         <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">Start</p>
         <p className="text-text-primary text-sm font-light">
-          {currentDrive?.startLocation ?? 'Unknown'} — {currentDrive?.startAddress ?? ''}
+          {currentDrive?.startAddress || currentDrive?.startLocation || 'Unknown'}
         </p>
       </div>
 
