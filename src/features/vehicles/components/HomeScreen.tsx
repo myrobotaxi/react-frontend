@@ -7,7 +7,7 @@ import type { Vehicle } from '@/types/vehicle';
 import type { Drive } from '@/types/drive';
 import { SetupBanner } from '@/components/ui/SetupBanner';
 import { TESLA_KEY_PAIRING_URL } from '@/lib/constants';
-import { isDriveInProgress } from '@/lib/drive-utils';
+import { selectCurrentDrive } from '@/lib/drive-utils';
 
 import { BottomSheet, shouldShowHalfContent } from '@/components/layout/BottomSheet';
 
@@ -52,22 +52,11 @@ export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
   const vehicle = vehicles[currentVehicleIndex];
 
   // Find the active drive for the current vehicle.
-  // An in-progress drive has endTime === DRIVE_IN_PROGRESS_SENTINEL.
-  // If none is in progress, fall back to the most recent completed drive.
-  const currentDrive = useMemo(() => {
-    const vehicleDrives = drives.filter((d) => d.vehicleId === vehicle.id);
-
-    // Prefer the in-progress drive
-    const activeDrive = vehicleDrives.find((d) => isDriveInProgress(d));
-    if (activeDrive) return activeDrive;
-
-    // Fallback: most recent completed drive by date descending, startTime descending
-    vehicleDrives.sort((a, b) => {
-      if (a.date !== b.date) return b.date.localeCompare(a.date);
-      return b.startTime.localeCompare(a.startTime);
-    });
-    return vehicleDrives[0] as Drive | undefined;
-  }, [vehicle.id, drives]);
+  // Prefers in-progress; falls back to most recent completed.
+  const currentDrive = useMemo(
+    () => selectCurrentDrive(drives, vehicle.id),
+    [vehicle.id, drives],
+  );
 
   const isDriving = vehicle.status === 'driving';
   const routePoints = currentDrive?.routePoints;

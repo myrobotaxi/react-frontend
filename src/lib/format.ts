@@ -122,6 +122,22 @@ export function formatTime(isoString: string): string {
 }
 
 /**
+ * Parses a 12h time string (e.g., "9:07 PM") to minutes since midnight.
+ * Used for correct numeric comparison of formatted time strings.
+ * Returns 0 if the string cannot be parsed.
+ */
+export function parseTime12h(time: string): number {
+  const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const period = match[3].toUpperCase();
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
+/**
  * Formats a location string for display. If the string looks like raw
  * coordinates ("lat,lng"), formats it as abbreviated coordinates.
  * Otherwise returns it as-is (already a place name).

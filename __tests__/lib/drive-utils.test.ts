@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   DRIVE_IN_PROGRESS_SENTINEL,
   isDriveInProgress,
+  selectCurrentDrive,
 } from '@/lib/drive-utils';
 import type { Drive } from '@/types/drive';
 
@@ -30,30 +31,7 @@ describe('isDriveInProgress', () => {
   });
 });
 
-// ─── currentDrive selection logic ────────────────────────────────────────────
-
-/**
- * This suite tests the same selection algorithm used in HomeScreen.tsx:
- * 1. Prefer in-progress drives (endTime === DRIVE_IN_PROGRESS_SENTINEL)
- * 2. Fall back to the most recent completed drive (by date, then startTime)
- *
- * The logic is extracted here as a pure function to test without rendering.
- */
-function selectCurrentDrive(
-  drives: Drive[],
-  vehicleId: string,
-): Drive | undefined {
-  const vehicleDrives = drives.filter((d) => d.vehicleId === vehicleId);
-
-  const activeDrive = vehicleDrives.find((d) => isDriveInProgress(d));
-  if (activeDrive) return activeDrive;
-
-  vehicleDrives.sort((a, b) => {
-    if (a.date !== b.date) return b.date.localeCompare(a.date);
-    return b.startTime.localeCompare(a.startTime);
-  });
-  return vehicleDrives[0] as Drive | undefined;
-}
+// ─── selectCurrentDrive ─────────────────────────────────────────────────────
 
 /** Helper to build a minimal Drive object for testing. */
 function makeDrive(overrides: Partial<Drive> & Pick<Drive, 'id' | 'vehicleId' | 'date' | 'startTime' | 'endTime'>): Drive {
@@ -88,8 +66,8 @@ describe('selectCurrentDrive', () => {
         id: 'd1',
         vehicleId: 'vehicle-2',
         date: '2026-03-16',
-        startTime: '2026-03-16T10:00:00Z',
-        endTime: '2026-03-16T10:30:00Z',
+        startTime: '10:00 AM',
+        endTime: '10:30 AM',
       }),
     ];
     expect(selectCurrentDrive(drives, 'vehicle-1')).toBeUndefined();
@@ -101,14 +79,14 @@ describe('selectCurrentDrive', () => {
         id: 'completed',
         vehicleId: 'vehicle-1',
         date: '2026-03-16',
-        startTime: '2026-03-16T14:00:00Z',
-        endTime: '2026-03-16T14:30:00Z',
+        startTime: '2:00 PM',
+        endTime: '2:30 PM',
       }),
       makeDrive({
         id: 'in-progress',
         vehicleId: 'vehicle-1',
         date: '2026-03-16',
-        startTime: '2026-03-16T15:00:00Z',
+        startTime: '3:00 PM',
         endTime: DRIVE_IN_PROGRESS_SENTINEL,
       }),
     ];
@@ -123,15 +101,15 @@ describe('selectCurrentDrive', () => {
         id: 'older',
         vehicleId: 'vehicle-1',
         date: '2026-03-15',
-        startTime: '2026-03-15T20:00:00Z',
-        endTime: '2026-03-15T20:30:00Z',
+        startTime: '8:00 PM',
+        endTime: '8:30 PM',
       }),
       makeDrive({
         id: 'newer',
         vehicleId: 'vehicle-1',
         date: '2026-03-16',
-        startTime: '2026-03-16T08:00:00Z',
-        endTime: '2026-03-16T08:30:00Z',
+        startTime: '8:00 AM',
+        endTime: '8:30 AM',
       }),
     ];
 
@@ -139,26 +117,51 @@ describe('selectCurrentDrive', () => {
     expect(result?.id).toBe('newer');
   });
 
-  it('breaks date ties by startTime descending (ISO format sorts correctly)', () => {
+  it('breaks date ties by startTime descending (handles 12h format correctly)', () => {
     const drives = [
       makeDrive({
         id: 'morning',
         vehicleId: 'vehicle-1',
         date: '2026-03-16',
-        startTime: '2026-03-16T08:00:00Z',
-        endTime: '2026-03-16T08:30:00Z',
+        startTime: '9:00 AM',
+        endTime: '9:30 AM',
       }),
       makeDrive({
         id: 'afternoon',
         vehicleId: 'vehicle-1',
         date: '2026-03-16',
-        startTime: '2026-03-16T14:00:00Z',
-        endTime: '2026-03-16T14:30:00Z',
+        startTime: '2:15 PM',
+        endTime: '2:45 PM',
       }),
     ];
 
+    // "2:15 PM" > "9:00 AM" in real time, but localeCompare would sort wrong.
+    // parseTime12h ensures correct ordering.
     const result = selectCurrentDrive(drives, 'vehicle-1');
     expect(result?.id).toBe('afternoon');
+  });
+
+  it('correctly sorts 10:30 AM after 9:00 AM on the same date', () => {
+    const drives = [
+      makeDrive({
+        id: 'later-morning',
+        vehicleId: 'vehicle-1',
+        date: '2026-03-16',
+        startTime: '10:30 AM',
+        endTime: '11:00 AM',
+      }),
+      makeDrive({
+        id: 'early-morning',
+        vehicleId: 'vehicle-1',
+        date: '2026-03-16',
+        startTime: '9:00 AM',
+        endTime: '9:30 AM',
+      }),
+    ];
+
+    // localeCompare("9:00 AM", "10:30 AM") > 0 (wrong), parseTime12h gets it right
+    const result = selectCurrentDrive(drives, 'vehicle-1');
+    expect(result?.id).toBe('later-morning');
   });
 
   it('filters drives by vehicleId', () => {
@@ -167,15 +170,15 @@ describe('selectCurrentDrive', () => {
         id: 'other-car',
         vehicleId: 'vehicle-2',
         date: '2026-03-16',
-        startTime: '2026-03-16T16:00:00Z',
-        endTime: '2026-03-16T16:30:00Z',
+        startTime: '4:00 PM',
+        endTime: '4:30 PM',
       }),
       makeDrive({
         id: 'my-car',
         vehicleId: 'vehicle-1',
         date: '2026-03-16',
-        startTime: '2026-03-16T10:00:00Z',
-        endTime: '2026-03-16T10:30:00Z',
+        startTime: '10:00 AM',
+        endTime: '10:30 AM',
       }),
     ];
 
