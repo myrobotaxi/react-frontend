@@ -5,6 +5,7 @@ import {
   getBatteryColor,
   getBatteryTextColor,
   isDriving,
+  resolveGear,
 } from '@/lib/vehicle-helpers';
 import type { Vehicle } from '@/types/vehicle';
 
@@ -136,5 +137,34 @@ describe('isDriving', () => {
     expect(isDriving('charging')).toBe(false);
     expect(isDriving('offline')).toBe(false);
     expect(isDriving('in_service')).toBe(false);
+  });
+});
+
+describe('resolveGear', () => {
+  it('returns the gear when explicitly provided', () => {
+    expect(resolveGear('D', 'driving')).toBe('D');
+    expect(resolveGear('P', 'parked')).toBe('P');
+    expect(resolveGear('R', 'driving')).toBe('R');
+    expect(resolveGear('N', 'parked')).toBe('N');
+  });
+
+  it('infers D when null and status is driving', () => {
+    expect(resolveGear(null, 'driving')).toBe('D');
+  });
+
+  it('infers P when null and status is parked', () => {
+    expect(resolveGear(null, 'parked')).toBe('P');
+  });
+
+  it('infers P when null and status is charging', () => {
+    expect(resolveGear(null, 'charging')).toBe('P');
+  });
+
+  it('infers P when null and status is offline', () => {
+    expect(resolveGear(null, 'offline')).toBe('P');
+  });
+
+  it('infers P when null and status is in_service', () => {
+    expect(resolveGear(null, 'in_service')).toBe('P');
   });
 });

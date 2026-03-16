@@ -4,6 +4,7 @@ import {
   mapTeslaStateToVehicleStatus,
   celsiusToFahrenheit,
   parseModelFromVin,
+  parseGearPosition,
   mapTeslaVehicleToUpsertData,
 } from '@/lib/tesla-mapper';
 import type { TeslaVehicleListItem, TeslaVehicleData } from '@/lib/tesla-client';
@@ -135,6 +136,38 @@ describe('parseModelFromVin', () => {
   it('returns fallback year for unknown year char', () => {
     const result = parseModelFromVin('5YJ311EA10F000001');
     expect(result.year).toBe(2024);
+  });
+});
+
+// ─── parseGearPosition ──────────────────────────────────────────────────────
+
+describe('parseGearPosition', () => {
+  it('returns P for "P"', () => {
+    expect(parseGearPosition('P')).toBe('P');
+  });
+
+  it('returns R for "R"', () => {
+    expect(parseGearPosition('R')).toBe('R');
+  });
+
+  it('returns N for "N"', () => {
+    expect(parseGearPosition('N')).toBe('N');
+  });
+
+  it('returns D for "D"', () => {
+    expect(parseGearPosition('D')).toBe('D');
+  });
+
+  it('returns null for null', () => {
+    expect(parseGearPosition(null)).toBeNull();
+  });
+
+  it('returns null for unknown string', () => {
+    expect(parseGearPosition('X')).toBeNull();
+  });
+
+  it('returns null for empty string', () => {
+    expect(parseGearPosition('')).toBeNull();
   });
 });
 

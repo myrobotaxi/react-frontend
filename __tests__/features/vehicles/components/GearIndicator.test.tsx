@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-import { GearIndicator, resolveGear } from '@/features/vehicles/components/GearIndicator';
+import { GearIndicator } from '@/features/vehicles/components/GearIndicator';
+import { resolveGear } from '@/lib/vehicle-helpers';
 
 describe('resolveGear', () => {
   it('returns D when gearPosition is D', () => {
@@ -36,8 +37,8 @@ describe('resolveGear', () => {
     expect(resolveGear(null, 'driving')).toBe('D');
   });
 
-  it('infers P for unknown gearPosition string', () => {
-    expect(resolveGear('X', 'parked')).toBe('P');
+  it('infers P when gearPosition is null and status is in_service', () => {
+    expect(resolveGear(null, 'in_service')).toBe('P');
   });
 });
 

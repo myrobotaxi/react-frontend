@@ -1,7 +1,5 @@
-import type { VehicleStatus } from '@/types/vehicle';
-
-/** Valid gear positions from Tesla drive_state.shift_state. */
-export type GearPosition = 'P' | 'R' | 'N' | 'D';
+import type { GearPosition, VehicleStatus } from '@/types/vehicle';
+import { resolveGear } from '@/lib/vehicle-helpers';
 
 const GEAR_LABELS: GearPosition[] = ['P', 'R', 'N', 'D'];
 
@@ -16,26 +14,9 @@ const GEAR_COLORS: Record<GearPosition, string> = {
 /** Props for the GearIndicator component. */
 export interface GearIndicatorProps {
   /** Current gear position from Tesla API (P/R/N/D or null). */
-  gearPosition: string | null;
+  gearPosition: GearPosition | null;
   /** Vehicle status — used to infer gear when shift_state is null. */
   status: VehicleStatus;
-}
-
-/**
- * Resolves the displayed gear from the raw shift_state value.
- * Tesla returns null for shift_state when parked (engine off), so we
- * infer P from the vehicle status in that case.
- */
-export function resolveGear(
-  gearPosition: string | null,
-  status: VehicleStatus,
-): GearPosition {
-  if (gearPosition === 'D' || gearPosition === 'R' || gearPosition === 'N' || gearPosition === 'P') {
-    return gearPosition;
-  }
-  // Tesla returns null when the car is parked with the motor off
-  if (status === 'driving') return 'D';
-  return 'P';
 }
 
 /**

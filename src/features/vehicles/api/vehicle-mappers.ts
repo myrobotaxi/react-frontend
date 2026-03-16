@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 
-import type { Vehicle, TripStop, VehicleStatus } from '@/types/vehicle';
+import type { Vehicle, TripStop, VehicleStatus, GearPosition } from '@/types/vehicle';
 
 export type PrismaVehicleWithStops = Prisma.VehicleGetPayload<{ include: { stops: true } }>;
 
@@ -38,6 +38,13 @@ const VEHICLE_STATUS_MAP: Record<string, VehicleStatus> = {
   in_service: 'in_service',
 };
 
+const VALID_GEARS = new Set<string>(['P', 'R', 'N', 'D']);
+
+function toGearPosition(raw: string | null): GearPosition | null {
+  if (raw !== null && VALID_GEARS.has(raw)) return raw as GearPosition;
+  return null;
+}
+
 function toVehicleStatus(prismaStatus: string): VehicleStatus {
   const status = VEHICLE_STATUS_MAP[prismaStatus];
   if (!status) {
@@ -67,7 +74,7 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
     estimatedRange: prismaVehicle.estimatedRange,
     status: toVehicleStatus(prismaVehicle.status),
     speed: prismaVehicle.speed,
-    gearPosition: prismaVehicle.gearPosition,
+    gearPosition: toGearPosition(prismaVehicle.gearPosition),
     heading: prismaVehicle.heading,
     locationName: prismaVehicle.locationName,
     locationAddress: prismaVehicle.locationAddress,

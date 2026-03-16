@@ -3,7 +3,7 @@
  * No side effects, no database access, no React.
  */
 
-import type { VehicleStatus } from '@/types/vehicle';
+import type { VehicleStatus, GearPosition } from '@/types/vehicle';
 import type { TeslaVehicleListItem, TeslaVehicleData } from '@/lib/tesla-client';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ export interface TeslaVehicleUpsertData {
   estimatedRange: number;
   status: VehicleStatus;
   speed: number;
-  gearPosition: string | null;
+  gearPosition: GearPosition | null;
   heading: number;
   latitude: number;
   longitude: number;
@@ -86,6 +86,18 @@ export function parseModelFromVin(vin: string): { model: string; year: number } 
   return { model, year };
 }
 
+// ─── Gear position ──────────────────────────────────────────────────────────
+
+const VALID_GEARS = new Set<string>(['P', 'R', 'N', 'D']);
+
+/** Narrows a raw Tesla shift_state string to a valid GearPosition or null. */
+export function parseGearPosition(shiftState: string | null): GearPosition | null {
+  if (shiftState !== null && VALID_GEARS.has(shiftState)) {
+    return shiftState as GearPosition;
+  }
+  return null;
+}
+
 // ─── Full mapping ────────────────────────────────────────────────────────────
 
 export function mapTeslaVehicleToUpsertData(
@@ -142,7 +154,7 @@ export function mapTeslaVehicleToUpsertData(
       drive_state.shift_state,
     ),
     speed: drive_state.speed ?? 0,
-    gearPosition: drive_state.shift_state ?? null,
+    gearPosition: parseGearPosition(drive_state.shift_state ?? null),
     heading: drive_state.heading ?? 0,
     latitude: latitude ?? 0,
     longitude: longitude ?? 0,
