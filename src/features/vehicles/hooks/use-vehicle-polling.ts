@@ -41,8 +41,10 @@ export function useVehiclePolling(
   const [timedOut, setTimedOut] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stoppedRef = useRef(false);
 
   const cleanup = useCallback(() => {
+    stoppedRef.current = true;
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -56,9 +58,16 @@ export function useVehiclePolling(
   useEffect(() => {
     if (!enabled) return;
 
+    stoppedRef.current = false;
+
     const poll = async () => {
+      // Guard against race between timeout and a pending poll resolution.
+      // Once cleanup() sets stoppedRef, no further state updates should occur.
+      if (stoppedRef.current) return;
+
       try {
         const result = await fetchVehicles();
+        if (stoppedRef.current) return;
         if (result.length > 0) {
           setVehicles(result);
           setIsPolling(false);

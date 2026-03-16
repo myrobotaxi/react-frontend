@@ -12,7 +12,7 @@ export interface HomeSyncingScreenProps {
   /** Server action that fetches cached vehicles from the database. */
   fetchVehicles: () => Promise<Vehicle[]>;
   /** Server action to link Tesla (shown if polling times out). */
-  onLinkTesla: () => void;
+  onLinkTesla: () => Promise<void>;
 }
 
 /**
@@ -37,7 +37,7 @@ export function HomeSyncingScreen({ fetchVehicles, onLinkTesla }: HomeSyncingScr
       <div className="absolute inset-0 bg-gradient-to-b from-bg-primary via-bg-primary to-bg-surface opacity-50" />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-gold/[0.03] blur-3xl" />
 
-      <div className="relative z-10 text-center max-w-sm animate-fade-in">
+      <div className="relative z-10 text-center max-w-sm animate-fade-in" aria-live="polite">
         {/* Car icon */}
         <div className="mb-12">
           <CarIcon />
