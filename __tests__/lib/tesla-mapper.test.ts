@@ -365,6 +365,24 @@ describe('mapTeslaVehicleToUpsertData', () => {
     expect(result.tripDistanceRemaining).toBeNull();
   });
 
+  it('normalizes empty destination string to null (dropped pin)', () => {
+    const navData: TeslaVehicleData = {
+      ...vehicleData,
+      drive_state: {
+        ...vehicleData.drive_state!,
+        active_route_destination: '',
+        active_route_miles_to_arrival: 3.2,
+        active_route_minutes_to_arrival: 8.0,
+      },
+    };
+
+    const result = mapTeslaVehicleToUpsertData(listItem, navData);
+
+    expect(result.destinationName).toBeNull();
+    expect(result.etaMinutes).toBe(8);
+    expect(result.tripDistanceRemaining).toBe(3.2);
+  });
+
   it('clears navigation fields when drive_state is absent (asleep vehicle)', () => {
     const asleepData: TeslaVehicleData = {
       id: 123,

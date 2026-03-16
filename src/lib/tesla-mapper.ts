@@ -113,8 +113,10 @@ export function mapTeslaVehicleToUpsertData(
   // Navigation fields — only present when the driver has an active route.
   // When absent, set to null so the sync layer clears stale navigation data.
   const hasActiveRoute = drive_state.active_route_destination !== undefined;
+  // Use || instead of ?? to normalize empty strings to null
+  // (Tesla may return "" for unnamed destinations like dropped pins)
   const destinationName = hasActiveRoute
-    ? (drive_state.active_route_destination ?? null)
+    ? (drive_state.active_route_destination || null)
     : null;
   const etaMinutes = hasActiveRoute && drive_state.active_route_minutes_to_arrival !== undefined
     ? Math.round(drive_state.active_route_minutes_to_arrival)
