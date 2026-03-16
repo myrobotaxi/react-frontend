@@ -297,4 +297,94 @@ describe('detectAndRecordDrive', () => {
       expect(mockDriveUpdate).not.toHaveBeenCalled();
     });
   });
+
+  describe('race condition edge cases', () => {
+    it('handles updateActiveDrive when drive is deleted between queries', async () => {
+      mockDriveFindFirst.mockResolvedValue({ id: 'drive-gone', endTime: '' });
+      // Drive deleted between findFirst and findUnique (race condition)
+      mockDriveFindUnique.mockResolvedValue(null);
+
+      await detectAndRecordDrive(baseDrivingInput);
+
+      expect(mockDriveUpdate).not.toHaveBeenCalled();
+    });
+
+    it('handles endDrive when drive is deleted between queries', async () => {
+      mockDriveFindFirst.mockResolvedValue({ id: 'drive-gone', endTime: '' });
+      // Drive deleted between findFirst and findUnique (race condition)
+      mockDriveFindUnique.mockResolvedValue(null);
+
+      await detectAndRecordDrive(baseParkedInput);
+
+      expect(mockDriveUpdate).not.toHaveBeenCalled();
+      expect(mockDriveDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('in_service status', () => {
+    it('ends an active drive when vehicle enters in_service', async () => {
+      const startTime = new Date(Date.now() - 30 * 60_000);
+      const activeDrive = {
+        id: 'drive-service',
+        vehicleId: 'vehicle-1',
+        startTime: startTime.toISOString(),
+        endTime: '',
+        startLocation: '30.300,-97.750',
+        startChargeLevel: 85,
+        maxSpeedMph: 60,
+        routePoints: [
+          { lat: 30.300, lng: -97.750, timestamp: startTime.toISOString(), speed: 60 },
+        ],
+      };
+      mockDriveFindFirst.mockResolvedValue(activeDrive);
+      mockDriveFindUnique.mockResolvedValue(activeDrive);
+      mockDriveUpdate.mockResolvedValue({});
+
+      await detectAndRecordDrive({
+        ...baseParkedInput,
+        status: 'in_service',
+      });
+
+      expect(mockDriveUpdate).toHaveBeenCalledTimes(1);
+      const updateArg = mockDriveUpdate.mock.calls[0][0];
+      expect(updateArg.data.endTime).toBeTruthy();
+      expect(updateArg.data.endTime).not.toBe('');
+    });
+  });
+
+  describe('ending a drive with 0,0 coordinates', () => {
+    it('uses startLocation as endLocation when ending at 0,0', async () => {
+      const startTime = new Date(Date.now() - 30 * 60_000);
+      const activeDrive = {
+        id: 'drive-offline',
+        vehicleId: 'vehicle-1',
+        startTime: startTime.toISOString(),
+        endTime: '',
+        startLocation: '30.300,-97.750',
+        startChargeLevel: 85,
+        maxSpeedMph: 55,
+        routePoints: [
+          { lat: 30.300, lng: -97.750, timestamp: startTime.toISOString(), speed: 55 },
+          { lat: 30.350, lng: -97.720, timestamp: new Date(Date.now() - 15 * 60_000).toISOString(), speed: 55 },
+        ],
+      };
+      mockDriveFindFirst.mockResolvedValue(activeDrive);
+      mockDriveFindUnique.mockResolvedValue(activeDrive);
+      mockDriveUpdate.mockResolvedValue({});
+
+      await detectAndRecordDrive({
+        ...baseParkedInput,
+        status: 'offline',
+        latitude: 0,
+        longitude: 0,
+      });
+
+      expect(mockDriveUpdate).toHaveBeenCalledTimes(1);
+      const updateArg = mockDriveUpdate.mock.calls[0][0];
+      // Should fall back to startLocation since coords are 0,0
+      expect(updateArg.data.endLocation).toBe('30.300,-97.750');
+      // Should NOT have appended a 0,0 route point
+      expect(updateArg.data.routePoints).toHaveLength(2);
+    });
+  });
 });

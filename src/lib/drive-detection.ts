@@ -15,6 +15,7 @@ import type { Prisma } from '@prisma/client';
 import { totalDistanceFromRoutePoints } from '@/lib/geo';
 import type { RoutePoint } from '@/lib/geo';
 import { prisma } from '@/lib/prisma';
+import type { VehicleStatus } from '@/types/vehicle';
 
 // Re-export for consumers
 export type { RoutePoint } from '@/lib/geo';
@@ -22,7 +23,7 @@ export type { RoutePoint } from '@/lib/geo';
 /** Data extracted from a Tesla sync for drive detection. */
 export interface DriveDetectionInput {
   vehicleId: string;
-  status: 'driving' | 'parked' | 'charging' | 'offline' | 'in_service';
+  status: VehicleStatus;
   latitude: number;
   longitude: number;
   speed: number;
@@ -38,7 +39,11 @@ const MIN_DRIVE_DURATION_MINUTES = 2;
 /** Minimum drive distance (miles) to persist. Filters out micro-drives. */
 const MIN_DRIVE_DISTANCE_MILES = 0.1;
 
-/** Approximate kWh per percentage point for Tesla batteries (~75 kWh pack). */
+/**
+ * Approximate kWh per percentage point for Tesla batteries (~75 kWh pack).
+ * Real packs range 50-100 kWh across models; this is a rough average.
+ * TODO: Look up actual pack size from vehicle model for more accurate estimates.
+ */
 const KWH_PER_PERCENT = 0.75;
 
 // ─── Drive detection ──────────────────────────────────────────────────────────
@@ -58,7 +63,10 @@ export async function detectAndRecordDrive(
   const isDriving = input.status === 'driving';
   const hasValidCoords = input.latitude !== 0 || input.longitude !== 0;
 
-  // Find active drive (no endTime) for this vehicle
+  // Find active drive (no endTime) for this vehicle.
+  // We use endTime: '' (empty string) as the "in progress" sentinel because
+  // the Prisma schema defines endTime as a required String (not nullable).
+  // If the schema ever changes to allow null, update this query accordingly.
   const activeDrive = await prisma.drive.findFirst({
     where: { vehicleId: input.vehicleId, endTime: '' },
   });
