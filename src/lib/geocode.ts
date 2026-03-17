@@ -13,6 +13,11 @@ export interface GeocodeResult {
   address: string;
 }
 
+/** Shape of the Mapbox Geocoding API response (minimal subset we use). */
+interface MapboxGeocodeResponse {
+  features?: Array<{ text?: string; place_name?: string }>;
+}
+
 /**
  * Reverse geocode a lat/lng coordinate pair via the Mapbox Geocoding API.
  * Returns a place name and address, or null if the lookup fails.
@@ -35,7 +40,7 @@ export async function reverseGeocode(
       return null;
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as MapboxGeocodeResponse;
     const feature = data?.features?.[0];
     if (!feature) return null;
 

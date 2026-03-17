@@ -92,7 +92,7 @@ async function startDrive(input: DriveDetectionInput): Promise<void> {
     timestamp: now.toISOString(), speed: input.speed,
   };
 
-  // Reverse geocode start location (non-blocking — falls back to coords)
+  // Reverse geocode start location (graceful fallback to coords on failure)
   const geo = await reverseGeocode(input.latitude, input.longitude);
   const coordString = `${input.latitude},${input.longitude}`;
 
@@ -153,7 +153,13 @@ async function endDrive(
   driveId: string,
   input: DriveDetectionInput,
 ): Promise<void> {
-  const drive = await prisma.drive.findUnique({ where: { id: driveId } });
+  const hasEndCoords = input.latitude !== 0 || input.longitude !== 0;
+
+  // Fire DB read and geocode in parallel — geocode doesn't depend on drive record
+  const [drive, geo] = await Promise.all([
+    prisma.drive.findUnique({ where: { id: driveId } }),
+    hasEndCoords ? reverseGeocode(input.latitude, input.longitude) : null,
+  ]);
   if (!drive) return;
 
   const now = new Date();
@@ -165,7 +171,7 @@ async function endDrive(
   const routePoints = (drive.routePoints as unknown as RoutePoint[]) ?? [];
 
   // Add final point if we have valid coordinates
-  if (input.latitude !== 0 || input.longitude !== 0) {
+  if (hasEndCoords) {
     routePoints.push({
       lat: input.latitude, lng: input.longitude,
       timestamp: now.toISOString(), speed: 0,
@@ -195,13 +201,10 @@ async function endDrive(
   const chargeUsed = Math.max(0, drive.startChargeLevel - input.chargeLevel);
   const energyUsedKwh = Math.round(chargeUsed * KWH_PER_PERCENT * 10) / 10;
 
-  const hasEndCoords = input.latitude !== 0 || input.longitude !== 0;
-
-  // Reverse geocode end location (non-blocking — falls back to coords)
+  // Resolve end location from geocode result (graceful fallback to coords)
   let endLocation: string;
   let endAddress = '';
   if (hasEndCoords) {
-    const geo = await reverseGeocode(input.latitude, input.longitude);
     endLocation = geo?.placeName || `${input.latitude},${input.longitude}`;
     endAddress = geo?.address || '';
   } else {
