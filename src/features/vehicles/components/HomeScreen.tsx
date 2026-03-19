@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { useSession } from 'next-auth/react';
 
 import type { Vehicle } from '@/types/vehicle';
 import type { Drive } from '@/types/drive';
@@ -14,6 +15,7 @@ import { BottomSheet, shouldShowHalfContent } from '@/components/layout/BottomSh
 import { useBottomSheet } from '../hooks/use-bottom-sheet';
 import { useBackgroundSync } from '../hooks/use-background-sync';
 import { usePullToRefresh } from '../hooks/use-pull-to-refresh';
+import { useVehicleStream } from '../hooks/use-vehicle-stream';
 import { VehicleDotSelector } from './VehicleDotSelector';
 import { DrivingPeekContent } from './DrivingPeekContent';
 import { ParkedPeekContent } from './ParkedPeekContent';
@@ -41,6 +43,7 @@ export interface HomeScreenProps {
  * Coordinates VehicleMap, VehicleDotSelector, BottomSheet, and peek/half content.
  */
 export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
+  const { data: session } = useSession();
   const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0);
   const [dismissedVehicleIds, setDismissedVehicleIds] = useState<Set<string>>(new Set());
   const sheet = useBottomSheet('peek');
@@ -49,7 +52,16 @@ export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
   const { pullDistance, isRefreshing } = usePullToRefresh(syncAction, sheet.sheetState);
   const isSyncing = isAutoSyncing || isRefreshing;
 
-  const vehicle = vehicles[currentVehicleIndex];
+  // Real-time telemetry via WebSocket — merges live updates into vehicle state.
+  const { vehicles: liveVehicles } = useVehicleStream(vehicles, session?.user?.id);
+
+  // Use live vehicle data if available, fall back to server-rendered data.
+  const allVehicles = useMemo(() => {
+    if (liveVehicles.size === 0) return vehicles;
+    return vehicles.map((v) => liveVehicles.get(v.id) ?? v);
+  }, [vehicles, liveVehicles]);
+
+  const vehicle = allVehicles[currentVehicleIndex];
 
   // Find the active drive for the current vehicle.
   // Prefers in-progress; falls back to most recent completed.
@@ -87,7 +99,7 @@ export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
 
           {/* Vehicle dot selector */}
           <VehicleDotSelector
-            vehicles={vehicles}
+            vehicles={allVehicles}
             currentIndex={currentVehicleIndex}
             onSelect={setCurrentVehicleIndex}
           />
