@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { useSession } from 'next-auth/react';
 
 import type { Vehicle } from '@/types/vehicle';
 import type { Drive } from '@/types/drive';
@@ -36,14 +35,15 @@ export interface HomeScreenProps {
   drives: Drive[];
   /** Server action to trigger a background sync from Tesla. */
   onSync?: () => Promise<void>;
+  /** Signed JWT for WebSocket authentication. */
+  wsToken?: string;
 }
 
 /**
  * Main home screen orchestrator — full-screen map with bottom sheet.
  * Coordinates VehicleMap, VehicleDotSelector, BottomSheet, and peek/half content.
  */
-export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
-  const { data: session } = useSession();
+export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProps) {
   const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0);
   const [dismissedVehicleIds, setDismissedVehicleIds] = useState<Set<string>>(new Set());
   const sheet = useBottomSheet('peek');
@@ -53,7 +53,7 @@ export function HomeScreen({ vehicles, drives, onSync }: HomeScreenProps) {
   const isSyncing = isAutoSyncing || isRefreshing;
 
   // Real-time telemetry via WebSocket — merges live updates into vehicle state.
-  const { vehicles: liveVehicles } = useVehicleStream(vehicles, session?.user?.id);
+  const { vehicles: liveVehicles } = useVehicleStream(vehicles, wsToken);
 
   // Use live vehicle data if available, fall back to server-rendered data.
   const allVehicles = useMemo(() => {
