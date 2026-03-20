@@ -71,7 +71,15 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProp
   );
 
   const isDriving = vehicle.status === 'driving';
-  const routePoints = currentDrive?.routePoints;
+
+  // Prefer live route coordinates from WebSocket (accumulated during active drive).
+  // Fall back to stored route points from the database Drive record.
+  // routeCoordinates is injected by the telemetry server via vehicle_update but
+  // not on the Vehicle type — access it from the raw merged fields.
+  const liveRoute = 'routeCoordinates' in vehicle
+    ? (vehicle as unknown as { routeCoordinates: [number, number][] }).routeCoordinates
+    : undefined;
+  const routePoints = liveRoute ?? currentDrive?.routePoints;
 
   // Trip progress (0-1)
   const tripProgress =
