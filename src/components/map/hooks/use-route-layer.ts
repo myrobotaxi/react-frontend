@@ -172,7 +172,6 @@ export function useRouteLayer(
       layersAddedRef.current = false;
       lastWaypointIndexRef.current = -1;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, mapLoaded, showRoute, stableRoute]);
 
   // ── Update remaining layer when vehicle passes a new waypoint ──────────

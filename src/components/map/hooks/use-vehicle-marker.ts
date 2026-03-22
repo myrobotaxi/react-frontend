@@ -90,7 +90,7 @@ export function useVehicleMarker(
       // Interpolate heading (shortest rotation)
       const fromH = fromHeadingRef.current;
       let toH = toHeadingRef.current;
-      let diff = toH - fromH;
+      const diff = toH - fromH;
       if (diff > 180) toH -= 360;
       else if (diff < -180) toH += 360;
       const h = fromH + (toH - fromH) * t;
@@ -115,7 +115,7 @@ export function useVehicleMarker(
         animFrameRef.current = null;
       }
     };
-  }, [position, heading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [position, heading]);
 
   // Cleanup on unmount
   useEffect(() => {
