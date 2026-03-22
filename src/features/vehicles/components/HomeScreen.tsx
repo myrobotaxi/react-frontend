@@ -91,6 +91,7 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProp
           routeCoordinates={routePoints}
           vehiclePosition={isDriving ? [vehicle.longitude, vehicle.latitude] : undefined}
           heading={vehicle.heading}
+          speed={vehicle.speed}
           center={[vehicle.longitude, vehicle.latitude]}
           zoom={12}
         >

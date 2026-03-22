@@ -59,6 +59,7 @@ export function SharedViewerScreen({ vehicle, ownerName, currentDrive }: SharedV
           routeCoordinates={routePoints}
           vehiclePosition={isDriving ? [vehicle.longitude, vehicle.latitude] : undefined}
           heading={vehicle.heading}
+          speed={vehicle.speed}
           center={[vehicle.longitude, vehicle.latitude]}
           zoom={12}
           fitButtonBottom={sheet.currentHeight + 16}
