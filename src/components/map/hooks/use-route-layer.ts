@@ -83,7 +83,6 @@ export function useRouteLayer(
                 'line-width': 4,
                 'line-gradient': [
                   'interpolate', ['linear'], ['line-progress'],
-                  0, GOLD_DIM,
                   0, GOLD_BRIGHT,
                   1, GOLD_BRIGHT,
                 ],
