@@ -36,14 +36,14 @@ const LARGE_JUMP_METERS = 500;
 
 /** Returns the target zoom level based on vehicle speed in mph. */
 function getSpeedBasedZoom(speedMph: number): number {
-  if (speedMph <= 5) return 17;
-  if (speedMph <= 15) return 16;
-  if (speedMph <= 25) return 15;
-  if (speedMph <= 35) return 14.5;
-  if (speedMph <= 45) return 14;
-  if (speedMph <= 55) return 13;
-  if (speedMph <= 65) return 12.5;
-  return 12;
+  if (speedMph <= 5) return 18;
+  if (speedMph <= 15) return 17;
+  if (speedMph <= 25) return 16.5;
+  if (speedMph <= 35) return 16;
+  if (speedMph <= 45) return 15.5;
+  if (speedMph <= 55) return 15;
+  if (speedMph <= 65) return 14.5;
+  return 14;
 }
 
 /** Smoothly interpolate between current and target zoom (avoids jarring jumps). */
