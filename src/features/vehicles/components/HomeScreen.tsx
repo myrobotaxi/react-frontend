@@ -10,6 +10,7 @@ import { TESLA_KEY_PAIRING_URL } from '@/lib/constants';
 import { selectCurrentDrive } from '@/lib/drive-utils';
 
 import { BottomSheet, shouldShowHalfContent } from '@/components/layout/BottomSheet';
+import { CompassLabels } from '@/components/map/CompassLabels';
 
 import { useBottomSheet } from '../hooks/use-bottom-sheet';
 import { useBackgroundSync } from '../hooks/use-background-sync';
@@ -71,7 +72,11 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProp
   );
 
   const isDriving = vehicle.status === 'driving';
-  const routePoints = currentDrive?.routePoints;
+
+  // Prefer live route from WebSocket (decoded RouteLine from Tesla nav).
+  // Fall back to stored route points from the database Drive record.
+  const liveRoute = getLiveRoute(vehicle);
+  const routePoints = (liveRoute && liveRoute.length >= 2) ? liveRoute : currentDrive?.routePoints;
 
   // Trip progress (0-1)
   const tripProgress =
@@ -86,11 +91,12 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProp
       {/* Full-screen map — disable interaction during sheet drag */}
       <div className="absolute inset-0" style={{ pointerEvents: sheet.isDragging ? 'none' : 'auto' }}>
         <VehicleMap
-          showVehicleMarker
-          showRoute={isDriving}
-          routeCoordinates={routePoints}
-          vehiclePosition={isDriving ? [vehicle.longitude, vehicle.latitude] : undefined}
-          heading={vehicle.heading}
+          vehicle={{
+            position: [vehicle.longitude, vehicle.latitude],
+            heading: vehicle.heading,
+            speed: vehicle.speed,
+          }}
+          route={{ show: isDriving, coordinates: routePoints }}
           center={[vehicle.longitude, vehicle.latitude]}
           zoom={12}
         >
@@ -186,25 +192,16 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProp
   );
 }
 
-/** Subtle compass direction labels overlaying the map. */
-function CompassLabels({ sheetHeight }: { sheetHeight: number }) {
-  return (
-    <>
-      <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 text-[10px] text-white/30 font-light select-none pointer-events-none">
-        N
-      </div>
-      <div
-        className="absolute left-1/2 -translate-x-1/2 z-10 text-[10px] text-white/30 font-light select-none pointer-events-none"
-        style={{ bottom: `${sheetHeight + 8}px` }}
-      >
-        S
-      </div>
-      <div className="absolute top-1/2 right-3 -translate-y-1/2 z-10 text-[10px] text-white/30 font-light select-none pointer-events-none">
-        E
-      </div>
-      <div className="absolute top-1/2 left-3 -translate-y-1/2 z-10 text-[10px] text-white/30 font-light select-none pointer-events-none">
-        W
-      </div>
-    </>
-  );
+/** Safely extract routeCoordinates from WebSocket-merged vehicle state.
+ *  The telemetry server injects this field via vehicle_update but it's
+ *  not on the Vehicle type — check existence at runtime. */
+function getLiveRoute(vehicle: Vehicle): [number, number][] | undefined {
+  if ('routeCoordinates' in vehicle) {
+    const coords = (vehicle as unknown as { routeCoordinates: unknown }).routeCoordinates;
+    if (Array.isArray(coords) && coords.length > 0) {
+      return coords as [number, number][];
+    }
+  }
+  return undefined;
 }
+

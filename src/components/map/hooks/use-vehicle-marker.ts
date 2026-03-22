@@ -5,10 +5,16 @@ import mapboxgl from 'mapbox-gl';
 
 import type { LngLat } from '@/types/drive';
 import { MAPBOX_GOLD } from '@/lib/mapbox';
+import { shortestRotation } from '@/lib/map-math';
+
+/** Duration of the position interpolation (ms). Matches the telemetry
+ *  update interval so the marker glides continuously without pausing. */
+const LERP_DURATION = 1000;
 
 /**
  * Manages the gold pulsing vehicle marker on the map.
- * Creates the marker element once, then updates position and heading.
+ * Smoothly interpolates between position updates using requestAnimationFrame
+ * for fluid, continuous movement — no choppy jumps between ticks.
  */
 export function useVehicleMarker(
   map: React.RefObject<mapboxgl.Map | null>,
@@ -20,7 +26,15 @@ export function useVehicleMarker(
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const markerElRef = useRef<HTMLDivElement | null>(null);
 
-  // Create or update marker position
+  // Animation state refs (avoid re-renders, survive across effect calls)
+  const animFrameRef = useRef<number | null>(null);
+  const fromPosRef = useRef<LngLat>(position);
+  const toPosRef = useRef<LngLat>(position);
+  const startTimeRef = useRef<number>(0);
+  const fromHeadingRef = useRef<number>(heading);
+  const toHeadingRef = useRef<number>(heading);
+
+  // Create marker once
   useEffect(() => {
     const m = map.current;
     if (!m || !mapLoaded || !showMarker) return;
@@ -38,22 +52,74 @@ export function useVehicleMarker(
         </div>
       `;
       markerElRef.current = el;
-      markerRef.current = new mapboxgl.Marker({ element: el }).setLngLat(position).addTo(m);
-    } else {
-      markerRef.current?.setLngLat(position);
+      markerRef.current = new mapboxgl.Marker({ element: el })
+        .setLngLat(position)
+        .addTo(m);
+      fromPosRef.current = position;
+      toPosRef.current = position;
     }
-  }, [map, showMarker, position, heading, mapLoaded]);
+  }, [map, mapLoaded, showMarker]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update heading rotation via direct DOM manipulation
+  // Animate to new position on each update
   useEffect(() => {
-    if (!markerElRef.current) return;
-    const svg = markerElRef.current.querySelector('svg');
-    if (svg) svg.style.transform = `rotate(${heading}deg)`;
-  }, [heading]);
+    if (!markerRef.current) return;
+
+    // Cancel any in-progress animation
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+
+    // Set up interpolation from current rendered position to new target
+    const currentLngLat = markerRef.current.getLngLat();
+    fromPosRef.current = [currentLngLat.lng, currentLngLat.lat];
+    toPosRef.current = position;
+    fromHeadingRef.current = toHeadingRef.current;
+    toHeadingRef.current = heading;
+    startTimeRef.current = performance.now();
+
+    function animate(now: number) {
+      const elapsed = now - startTimeRef.current;
+      // Linear progress 0→1 clamped
+      const t = Math.min(elapsed / LERP_DURATION, 1);
+
+      // Interpolate position
+      const lng = fromPosRef.current[0] + (toPosRef.current[0] - fromPosRef.current[0]) * t;
+      const lat = fromPosRef.current[1] + (toPosRef.current[1] - fromPosRef.current[1]) * t;
+      markerRef.current?.setLngLat([lng, lat]);
+
+      // Interpolate heading via shortest rotation path
+      const targetH = shortestRotation(fromHeadingRef.current, toHeadingRef.current);
+      const h = fromHeadingRef.current + (targetH - fromHeadingRef.current) * t;
+
+      if (markerElRef.current) {
+        const svg = markerElRef.current.querySelector('svg');
+        if (svg) svg.style.transform = `rotate(${h}deg)`;
+      }
+
+      if (t < 1) {
+        animFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animFrameRef.current = null;
+      }
+    }
+
+    animFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+    };
+  }, [position, heading]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
       markerRef.current?.remove();
       markerRef.current = null;
       markerElRef.current = null;
