@@ -54,12 +54,12 @@ export function SharedViewerScreen({ vehicle, ownerName, currentDrive }: SharedV
       {/* Full-screen map */}
       <div className="absolute inset-0">
         <VehicleMap
-          showVehicleMarker
-          showRoute={isDriving}
-          routeCoordinates={routePoints}
-          vehiclePosition={isDriving ? [vehicle.longitude, vehicle.latitude] : undefined}
-          heading={vehicle.heading}
-          speed={vehicle.speed}
+          vehicle={isDriving ? {
+            position: [vehicle.longitude, vehicle.latitude],
+            heading: vehicle.heading,
+            speed: vehicle.speed,
+          } : undefined}
+          route={{ show: isDriving, coordinates: routePoints }}
           center={[vehicle.longitude, vehicle.latitude]}
           zoom={12}
           fitButtonBottom={sheet.currentHeight + 16}

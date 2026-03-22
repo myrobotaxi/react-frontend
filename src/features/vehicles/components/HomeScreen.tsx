@@ -92,12 +92,12 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProp
       {/* Full-screen map — disable interaction during sheet drag */}
       <div className="absolute inset-0" style={{ pointerEvents: sheet.isDragging ? 'none' : 'auto' }}>
         <VehicleMap
-          showVehicleMarker
-          showRoute={isDriving}
-          routeCoordinates={routePoints}
-          vehiclePosition={isDriving ? [vehicle.longitude, vehicle.latitude] : undefined}
-          heading={vehicle.heading}
-          speed={vehicle.speed}
+          vehicle={isDriving ? {
+            position: [vehicle.longitude, vehicle.latitude],
+            heading: vehicle.heading,
+            speed: vehicle.speed,
+          } : undefined}
+          route={{ show: isDriving, coordinates: routePoints }}
           center={[vehicle.longitude, vehicle.latitude]}
           zoom={12}
         >
