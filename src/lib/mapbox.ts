@@ -33,6 +33,14 @@ export const MAPBOX_GOLD = '#C9A84C';
 /** Green color for route start markers. */
 export const MAPBOX_START_MARKER_COLOR = '#30D158';
 
+/** Shared style object for floating map buttons (mode toggle, recenter). */
+export const MAP_BUTTON_STYLE = {
+  background: 'rgba(30,30,30,0.85)',
+  backdropFilter: 'blur(8px)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+} as const;
+
 if (!MAPBOX_TOKEN && typeof window !== 'undefined') {
   console.error('[Mapbox] NEXT_PUBLIC_MAPBOX_TOKEN is not set.');
 }

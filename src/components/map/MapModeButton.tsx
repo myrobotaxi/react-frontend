@@ -1,15 +1,7 @@
 'use client';
 
-import type { MapMode } from './hooks/use-map-follow';
-import { MAPBOX_GOLD } from '@/lib/mapbox';
-
-/** Shared style object for floating map buttons. */
-const MAP_BUTTON_STYLE = {
-  background: 'rgba(30,30,30,0.85)',
-  backdropFilter: 'blur(8px)',
-  border: '1px solid rgba(255,255,255,0.12)',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-};
+import type { MapMode } from '@/lib/map-math';
+import { MAP_BUTTON_STYLE, MAPBOX_GOLD } from '@/lib/mapbox';
 
 /** Disabled (free mode) icon color. */
 const DISABLED_COLOR = 'rgba(255,255,255,0.3)';
