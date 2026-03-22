@@ -8,9 +8,8 @@ import {
   MAPBOX_GOLD,
   MAPBOX_START_MARKER_COLOR,
 } from '@/lib/mapbox';
-import { splitRoute } from '@/lib/route-utils';
 
-/** GeoJSON Feature for a LineString — used for route source data. */
+/** GeoJSON Feature for a LineString with lineMetrics support. */
 function lineFeature(coords: LngLat[]): GeoJSON.Feature<GeoJSON.LineString> {
   return {
     type: 'Feature',
@@ -19,24 +18,25 @@ function lineFeature(coords: LngLat[]): GeoJSON.Feature<GeoJSON.LineString> {
   };
 }
 
-/** Empty LineString feature (no coordinates). */
+/** Empty LineString feature. */
 const EMPTY_LINE: GeoJSON.Feature<GeoJSON.LineString> = lineFeature([]);
+
+/** Dim gold for the completed portion of the route. */
+const GOLD_DIM = 'rgba(201, 168, 76, 0.3)';
+/** Bright gold for the remaining portion. */
+const GOLD_BRIGHT = 'rgba(201, 168, 76, 0.9)';
 
 /** Return type of the useRouteLayer hook. */
 export interface UseRouteLayerReturn {
-  /** The remaining (ahead of vehicle) route segment, for route overview fitBounds. */
   remainingRoute: LngLat[] | undefined;
 }
 
 /**
- * Manages route rendering on the map — two-tone segments, start/end markers.
+ * Renders the route as a single line with a two-tone gradient.
  *
- * Sources and layers are created **once** on mount (when route appears).
- * Position updates use `source.setData()` to update geometry in-place,
- * avoiding the expensive teardown/re-add cycle.
- *
- * fitBounds is NOT called on position updates — the map follow hook
- * handles camera behavior (including route-overview mode).
+ * Uses Mapbox's `line-gradient` with `lineMetrics: true` — the gradient
+ * stop position is updated via `setPaintProperty` which is a GPU-side
+ * operation with zero flicker (unlike setData which re-renders geometry).
  */
 export function useRouteLayer(
   map: React.RefObject<mapboxgl.Map | null>,
@@ -47,29 +47,56 @@ export function useRouteLayer(
 ): UseRouteLayerReturn {
   const startMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const endMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const sourcesAddedRef = useRef(false);
+  const sourceAddedRef = useRef(false);
   const [remainingRoute, setRemainingRoute] = useState<LngLat[] | undefined>(undefined);
+  const progressRef = useRef(0);
 
-  // ── Create sources and layers once when route first appears ─────────────
+  // ── Create source and layer once when route first appears ──────────────
   useEffect(() => {
     const m = map.current;
     if (!m || !mapLoaded) return;
 
-    // Clean up if route is hidden or missing
     if (!showRoute || !routeCoordinates || routeCoordinates.length < 2) {
-      removeRouteLayers(m, startMarkerRef, endMarkerRef);
-      sourcesAddedRef.current = false;
+      cleanup(m, startMarkerRef, endMarkerRef);
+      sourceAddedRef.current = false;
       setRemainingRoute(undefined);
       return;
     }
 
-    // Add sources + layers if not already present — wait for style to load
-    if (!sourcesAddedRef.current) {
+    if (!sourceAddedRef.current) {
       const setup = () => {
-        addRouteSources(m);
-        addRouteLayers(m);
-        sourcesAddedRef.current = true;
+        try {
+          if (!m.getSource('route')) {
+            m.addSource('route', {
+              type: 'geojson',
+              data: lineFeature(routeCoordinates),
+              lineMetrics: true,
+            });
+          }
+          if (!m.getLayer('route-line')) {
+            m.addLayer({
+              id: 'route-line',
+              type: 'line',
+              source: 'route',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-width': 4,
+                'line-gradient': [
+                  'interpolate', ['linear'], ['line-progress'],
+                  0, GOLD_DIM,
+                  0, GOLD_BRIGHT,
+                  1, GOLD_BRIGHT,
+                ],
+              },
+            });
+          }
+        } catch (err) {
+          console.error('[useRouteLayer] setup failed:', err);
+        }
+
+        sourceAddedRef.current = true;
         addEndpointMarkers(m, routeCoordinates, startMarkerRef, endMarkerRef);
+        setRemainingRoute(routeCoordinates);
       };
 
       if (m.isStyleLoaded()) {
@@ -77,129 +104,128 @@ export function useRouteLayer(
       } else {
         m.once('style.load', setup);
       }
+    } else {
+      // Route coordinates changed — update source data
+      const src = m.getSource('route') as mapboxgl.GeoJSONSource | undefined;
+      if (src) {
+        src.setData(lineFeature(routeCoordinates));
+      }
+      setRemainingRoute(routeCoordinates);
     }
 
-    // Cleanup on unmount or route change (different route)
     return () => {
-      removeRouteLayers(m, startMarkerRef, endMarkerRef);
-      sourcesAddedRef.current = false;
+      cleanup(m, startMarkerRef, endMarkerRef);
+      sourceAddedRef.current = false;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, mapLoaded, showRoute, routeCoordinates]);
 
-  // ── Update route split on a throttled interval ─────────────────────────
-  // Two-tone split (dim completed, bright remaining) updates every 3s to
-  // avoid flicker from calling setData on every 1s telemetry tick.
+  // ── Update gradient progress on vehicle position change ────────────────
+  // setPaintProperty is a GPU-side operation — zero flicker.
   useEffect(() => {
     const m = map.current;
     if (!m || !mapLoaded || !showRoute || !routeCoordinates || routeCoordinates.length < 2) {
       return;
     }
+    if (!sourceAddedRef.current || !m.getLayer('route-line')) return;
 
-    if (!sourcesAddedRef.current) return;
+    const progress = computeProgress(routeCoordinates, vehiclePosition);
+    progressRef.current = progress;
 
-    function updateSplit() {
-      if (!m || !routeCoordinates) return;
-      const { completed, remaining } = splitRoute(routeCoordinates, vehiclePosition);
-      setRemainingRoute(remaining.length >= 2 ? remaining : undefined);
+    // Clamp to avoid gradient artifacts at boundaries
+    const p = Math.max(0.001, Math.min(progress, 0.999));
 
-      const completedSrc = m.getSource('route-completed') as mapboxgl.GeoJSONSource | undefined;
-      const remainingSrc = m.getSource('route-remaining') as mapboxgl.GeoJSONSource | undefined;
-
-      if (completedSrc) {
-        completedSrc.setData(completed.length >= 2 ? lineFeature(completed) : EMPTY_LINE);
-      }
-      if (remainingSrc) {
-        remainingSrc.setData(remaining.length >= 2 ? lineFeature(remaining) : EMPTY_LINE);
-      }
+    try {
+      m.setPaintProperty('route-line', 'line-gradient', [
+        'interpolate', ['linear'], ['line-progress'],
+        0, GOLD_DIM,
+        p, GOLD_DIM,
+        p, GOLD_BRIGHT,
+        1, GOLD_BRIGHT,
+      ]);
+    } catch {
+      // Layer might not exist yet during initial render
     }
-
-    // Initial update
-    updateSplit();
-
-    // Throttled updates every 3 seconds
-    const interval = setInterval(updateSplit, 3000);
-    return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, mapLoaded, showRoute, routeCoordinates]);
+  }, [map, mapLoaded, showRoute, routeCoordinates, vehiclePosition[0], vehiclePosition[1]]);
 
   return { remainingRoute };
 }
 
-// ── Internal helpers ──────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
-/** Add empty GeoJSON sources for both route segments. */
-function addRouteSources(m: mapboxgl.Map): void {
-  try {
-    if (!m.getSource('route-completed')) {
-      m.addSource('route-completed', { type: 'geojson', data: EMPTY_LINE });
-    }
-    if (!m.getSource('route-remaining')) {
-      m.addSource('route-remaining', { type: 'geojson', data: EMPTY_LINE });
-    }
-  } catch (err) {
-    console.error('[useRouteLayer] Failed to add sources:', err);
+/** Compute vehicle's progress along the route as a fraction 0-1. */
+function computeProgress(route: LngLat[], vehiclePos: LngLat): number {
+  if (route.length < 2) return 0;
+
+  let totalDist = 0;
+  const segDists: number[] = [];
+  for (let i = 1; i < route.length; i++) {
+    const d = quickDist(route[i - 1], route[i]);
+    segDists.push(d);
+    totalDist += d;
   }
+  if (totalDist === 0) return 0;
+
+  // Find closest segment to vehicle
+  let minDist = Infinity;
+  let closestIdx = 0;
+  for (let i = 0; i < route.length; i++) {
+    const d = quickDist(route[i], vehiclePos);
+    if (d < minDist) {
+      minDist = d;
+      closestIdx = i;
+    }
+  }
+
+  // Sum distance up to closest point
+  let traveled = 0;
+  for (let i = 0; i < closestIdx && i < segDists.length; i++) {
+    traveled += segDists[i];
+  }
+
+  return traveled / totalDist;
 }
 
-/** Add line layers for completed (dim) and remaining (bright) route segments. */
-function addRouteLayers(m: mapboxgl.Map): void {
-  try {
-    if (!m.getLayer('route-completed')) {
-      m.addLayer({
-        id: 'route-completed',
-        type: 'line',
-        source: 'route-completed',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': MAPBOX_GOLD, 'line-width': 4, 'line-opacity': 0.3 },
-      });
-    }
-    if (!m.getLayer('route-remaining')) {
-      m.addLayer({
-        id: 'route-remaining',
-        type: 'line',
-        source: 'route-remaining',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': MAPBOX_GOLD, 'line-width': 4, 'line-opacity': 0.9 },
-      });
-    }
-  } catch (err) {
-    console.error('[useRouteLayer] Failed to add layers:', err);
-  }
+/** Fast approximate distance (squared degrees — fine for comparison). */
+function quickDist(a: LngLat, b: LngLat): number {
+  const dx = a[0] - b[0];
+  const dy = a[1] - b[1];
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 /** Add start (green) and end (gold) endpoint markers. */
 function addEndpointMarkers(
   m: mapboxgl.Map,
-  routeCoordinates: LngLat[],
+  route: LngLat[],
   startRef: React.MutableRefObject<mapboxgl.Marker | null>,
   endRef: React.MutableRefObject<mapboxgl.Marker | null>,
 ): void {
-  // Start marker (green)
   const startEl = document.createElement('div');
   startEl.style.cssText = `width:10px;height:10px;border-radius:50%;background:${MAPBOX_START_MARKER_COLOR};border:2px solid rgba(255,255,255,0.5);box-shadow:0 0 6px rgba(48,209,88,0.5);`;
   startRef.current = new mapboxgl.Marker({ element: startEl })
-    .setLngLat(routeCoordinates[0])
+    .setLngLat(route[0])
     .addTo(m);
 
-  // End marker (gold)
   const endEl = document.createElement('div');
   endEl.style.cssText = `width:10px;height:10px;border-radius:50%;background:${MAPBOX_GOLD};border:2px solid rgba(255,255,255,0.5);box-shadow:0 0 6px rgba(201,168,76,0.5);`;
   endRef.current = new mapboxgl.Marker({ element: endEl })
-    .setLngLat(routeCoordinates[routeCoordinates.length - 1])
+    .setLngLat(route[route.length - 1])
     .addTo(m);
 }
 
-/** Remove route layers, sources, and endpoint markers. */
-function removeRouteLayers(
+/** Remove route layer, source, and markers. */
+function cleanup(
   m: mapboxgl.Map,
   startRef: React.MutableRefObject<mapboxgl.Marker | null>,
   endRef: React.MutableRefObject<mapboxgl.Marker | null>,
 ): void {
-  const ids = ['route-completed', 'route-remaining'];
-  for (const id of ids) {
-    try { if (m.getLayer(id)) m.removeLayer(id); } catch { /* ignore */ }
-    try { if (m.getSource(id)) m.removeSource(id); } catch { /* ignore */ }
+  try { if (m.getLayer('route-line')) m.removeLayer('route-line'); } catch { /* */ }
+  try { if (m.getSource('route')) m.removeSource('route'); } catch { /* */ }
+  // Also clean up old two-source layers if present
+  for (const id of ['route-completed', 'route-remaining']) {
+    try { if (m.getLayer(id)) m.removeLayer(id); } catch { /* */ }
+    try { if (m.getSource(id)) m.removeSource(id); } catch { /* */ }
   }
   startRef.current?.remove();
   startRef.current = null;
