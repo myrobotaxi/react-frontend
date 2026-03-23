@@ -1,5 +1,7 @@
 import { SignJWT } from 'jose';
 
+import { JWT_ISSUER, JWT_AUDIENCE } from '@/lib/constants';
+
 /**
  * Push fleet telemetry config for a vehicle via the telemetry server.
  * Called after virtual key pairing is detected during sync.
@@ -22,8 +24,8 @@ export async function pushFleetConfig(userId: string, vin: string): Promise<void
   const secret = new TextEncoder().encode(authSecret);
   const token = await new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: 'HS256' })
-    .setIssuer('myrobotaxi')
-    .setAudience('telemetry')
+    .setIssuer(JWT_ISSUER)
+    .setAudience(JWT_AUDIENCE)
     .setIssuedAt()
     .setExpirationTime('5m')
     .sign(secret);
