@@ -36,5 +36,9 @@ export const FALLBACK_POLL_INTERVAL = 10_000;
 /** Routes where the bottom nav is hidden. */
 export const HIDDEN_NAV_ROUTES = ['/signin', '/signup', '/empty', '/shared'];
 
+/** JWT claims for telemetry server authentication. Must match auth.token_issuer / auth.token_audience in the Go server config. */
+export const JWT_ISSUER = 'myrobotaxi';
+export const JWT_AUDIENCE = 'telemetry';
+
 /** Tesla virtual key pairing deep link. */
 export const TESLA_KEY_PAIRING_URL = 'https://tesla.com/_ak/myrobotaxi.app';

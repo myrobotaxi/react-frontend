@@ -7,6 +7,8 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import type { Vehicle } from '@/types/vehicle';
 
+import { JWT_ISSUER, JWT_AUDIENCE } from '@/lib/constants';
+
 import { syncVehiclesFromTesla, STALENESS_THRESHOLD_MS } from './sync';
 import { mapPrismaVehicleToVehicle } from './vehicle-mappers';
 
@@ -26,6 +28,8 @@ export async function generateWsToken(): Promise<string | null> {
 
   const token = await new SignJWT({ sub: session.user.id })
     .setProtectedHeader({ alg: 'HS256' })
+    .setIssuer(JWT_ISSUER)
+    .setAudience(JWT_AUDIENCE)
     .setIssuedAt()
     .setExpirationTime('1h')
     .sign(WS_TOKEN_SECRET);
