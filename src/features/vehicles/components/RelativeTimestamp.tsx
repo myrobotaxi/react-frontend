@@ -31,13 +31,17 @@ export function RelativeTimestamp({ isoString }: RelativeTimestampProps) {
   );
 }
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/** Deterministic format to avoid server/client hydration mismatch from toLocaleString. */
 function formatAbsoluteTime(isoString: string): string {
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return 'Unknown';
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return 'Unknown';
+  const month = MONTHS[d.getMonth()];
+  const day = d.getDate();
+  const h = d.getHours();
+  const m = d.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 || 12;
+  return `${month} ${day}, ${hour12}:${m} ${ampm}`;
 }
