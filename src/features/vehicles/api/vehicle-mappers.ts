@@ -6,15 +6,19 @@ import type { Vehicle, TripStop, VehicleStatus, GearPosition } from '@/types/veh
 export type PrismaVehicleWithStops = Prisma.VehicleGetPayload<{ include: { stops: true } }>;
 
 /**
- * Format a DateTime as a relative time string (e.g., "3s ago", "5m ago", "2h ago").
+ * Format a DateTime as a relative time string (e.g., "Just now", "3m ago", "2h ago").
+ * Exported for use in client-side hooks.
  */
-function formatRelativeTime(date: Date): string {
+export function formatRelativeTime(isoString: string): string {
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return 'Unknown';
+
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSeconds = Math.max(0, Math.floor(diffMs / 1000));
 
   if (diffSeconds < 60) {
-    return `${diffSeconds}s ago`;
+    return 'Just now';
   }
 
   const diffMinutes = Math.floor(diffSeconds / 60);
@@ -28,7 +32,11 @@ function formatRelativeTime(date: Date): string {
   }
 
   const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
+
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 const VEHICLE_STATUS_MAP: Record<string, VehicleStatus> = {
@@ -81,7 +89,7 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
     longitude: prismaVehicle.longitude,
     interiorTemp: prismaVehicle.interiorTemp,
     exteriorTemp: prismaVehicle.exteriorTemp,
-    lastUpdated: formatRelativeTime(prismaVehicle.lastUpdated),
+    lastUpdated: prismaVehicle.lastUpdated.toISOString(),
     odometerMiles: prismaVehicle.odometerMiles,
     fsdMilesToday: prismaVehicle.fsdMilesToday,
     virtualKeyPaired: prismaVehicle.virtualKeyPaired,

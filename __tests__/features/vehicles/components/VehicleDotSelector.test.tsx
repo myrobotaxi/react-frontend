@@ -22,7 +22,7 @@ const makeVehicle = (id: string, name: string): Vehicle => ({
   longitude: -122.4194,
   interiorTemp: 72,
   exteriorTemp: 68,
-  lastUpdated: '2024-01-01T12:00:00Z',
+  lastUpdated: new Date().toISOString(),
   odometerMiles: 15000,
   fsdMilesToday: 0,
   virtualKeyPaired: true,

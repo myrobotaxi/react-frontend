@@ -10,20 +10,20 @@ test.describe('home screen', () => {
     await expect(page.getByText('Midnight Runner')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('vehicle dot selector is visible with 2 dots', async ({ page }) => {
+  test('vehicle card carousel is visible with 2 cards', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByText('Midnight Runner')).toBeVisible({ timeout: 15_000 });
 
-    const dots = page.getByRole('button', { name: /select/i });
-    await expect(dots).toHaveCount(2);
+    const cards = page.getByRole('tab');
+    await expect(cards).toHaveCount(2);
   });
 
-  test('tapping second dot switches to Pearl', async ({ page }) => {
+  test('tapping second card switches to Pearl', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByText('Midnight Runner')).toBeVisible({ timeout: 15_000 });
 
-    const secondDot = page.getByRole('button', { name: /select pearl/i });
-    await secondDot.click();
+    const secondCard = page.getByRole('tab', { name: /pearl/i });
+    await secondCard.click();
     await expect(page.getByText('Pearl')).toBeVisible();
   });
 
@@ -33,5 +33,13 @@ test.describe('home screen', () => {
 
     const bottomSheet = page.getByRole('region', { name: /vehicle details/i });
     await expect(bottomSheet).toBeVisible();
+  });
+
+  test('refresh button is visible in bottom sheet', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByText('Midnight Runner')).toBeVisible({ timeout: 15_000 });
+
+    const refreshBtn = page.getByRole('button', { name: /refresh vehicle data/i });
+    await expect(refreshBtn).toBeVisible();
   });
 });

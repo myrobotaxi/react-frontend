@@ -1,6 +1,7 @@
 import type { Vehicle } from '@/types/vehicle';
 import type { Drive } from '@/types/drive';
 
+import { RelativeTimestamp } from './RelativeTimestamp';
 import { VehicleDetailsBlock } from './VehicleDetailsBlock';
 import { StopsList } from './StopsList';
 
@@ -70,7 +71,7 @@ export function DrivingHalfContent({ vehicle, currentDrive }: DrivingHalfContent
         </div>
       </div>
 
-      <p className="text-text-muted text-xs">Updated {vehicle.lastUpdated}</p>
+      <RelativeTimestamp isoString={vehicle.lastUpdated} />
     </div>
   );
 }

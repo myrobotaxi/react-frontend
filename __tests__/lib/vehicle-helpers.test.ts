@@ -30,7 +30,7 @@ function makeVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     longitude: -97.7431,
     interiorTemp: 72,
     exteriorTemp: 88,
-    lastUpdated: '3s ago',
+    lastUpdated: '2024-01-01T12:00:00Z',
     odometerMiles: 12000,
     fsdMilesToday: 10,
     virtualKeyPaired: true,

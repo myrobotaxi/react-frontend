@@ -2,6 +2,7 @@ import type { Vehicle } from '@/types/vehicle';
 
 import { getBatteryColor, getBatteryTextColor, STATUS_CONFIG } from '@/lib/vehicle-helpers';
 
+import { RelativeTimestamp } from './RelativeTimestamp';
 import { VehicleDetailsBlock } from './VehicleDetailsBlock';
 
 /** Props for the ParkedHalfContent component. */
@@ -84,7 +85,7 @@ export function ParkedHalfContent({ vehicle }: ParkedHalfContentProps) {
         </div>
       </div>
 
-      <p className="text-text-muted text-xs">Updated {vehicle.lastUpdated}</p>
+      <RelativeTimestamp isoString={vehicle.lastUpdated} />
     </div>
   );
 }

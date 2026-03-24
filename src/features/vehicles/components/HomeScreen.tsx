@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 
 import type { Vehicle } from '@/types/vehicle';
@@ -16,7 +16,7 @@ import { useBottomSheet } from '../hooks/use-bottom-sheet';
 import { useBackgroundSync } from '../hooks/use-background-sync';
 import { usePullToRefresh } from '../hooks/use-pull-to-refresh';
 import { useVehicleStream } from '../hooks/use-vehicle-stream';
-import { VehicleDotSelector } from './VehicleDotSelector';
+import { VehicleCardCarousel } from './VehicleCardCarousel';
 import { DrivingPeekContent } from './DrivingPeekContent';
 import { ParkedPeekContent } from './ParkedPeekContent';
 import { DrivingHalfContent } from './DrivingHalfContent';
@@ -42,7 +42,7 @@ export interface HomeScreenProps {
 
 /**
  * Main home screen orchestrator — full-screen map with bottom sheet.
- * Coordinates VehicleMap, VehicleDotSelector, BottomSheet, and peek/half content.
+ * Coordinates VehicleMap, VehicleCardCarousel, BottomSheet, and peek/half content.
  */
 export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProps) {
   const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0);
@@ -51,7 +51,14 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProp
   const syncAction = useMemo(() => onSync ?? (() => Promise.resolve()), [onSync]);
   const isAutoSyncing = useBackgroundSync(syncAction);
   const { pullDistance, isRefreshing } = usePullToRefresh(syncAction, sheet.sheetState);
-  const isSyncing = isAutoSyncing || isRefreshing;
+  const [isManualRefreshing, startManualRefresh] = useTransition();
+  const isSyncing = isAutoSyncing || isRefreshing || isManualRefreshing;
+
+  const handleManualRefresh = useCallback(() => {
+    startManualRefresh(async () => {
+      await syncAction();
+    });
+  }, [syncAction]);
 
   // Real-time telemetry via WebSocket — merges live updates into vehicle state.
   const { vehicles: liveVehicles } = useVehicleStream(vehicles, wsToken);
@@ -103,8 +110,8 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProp
           {/* Compass labels */}
           <CompassLabels sheetHeight={sheet.currentHeight} />
 
-          {/* Vehicle dot selector */}
-          <VehicleDotSelector
+          {/* Vehicle card carousel (replaces dot selector for multi-vehicle) */}
+          <VehicleCardCarousel
             vehicles={allVehicles}
             currentIndex={currentVehicleIndex}
             onSelect={setCurrentVehicleIndex}
@@ -171,9 +178,15 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken }: HomeScreenProp
             vehicle={vehicle}
             currentDrive={currentDrive}
             tripProgress={tripProgress}
+            isRefreshing={isSyncing}
+            onRefresh={handleManualRefresh}
           />
         ) : (
-          <ParkedPeekContent vehicle={vehicle} />
+          <ParkedPeekContent
+            vehicle={vehicle}
+            isRefreshing={isSyncing}
+            onRefresh={handleManualRefresh}
+          />
         )}
 
         {/* Half content */}
