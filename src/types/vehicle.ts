@@ -47,6 +47,8 @@ export interface Vehicle {
   fsdMilesToday: number;
   virtualKeyPaired: boolean;
   setupStatus: SetupStatus;
+  /** VIN — available after Tesla sync. Needed for pairing checks and telemetry. */
+  vin?: string;
   /** Active trip fields — present only when status === 'driving'. */
   destinationName?: string;
   destinationAddress?: string;

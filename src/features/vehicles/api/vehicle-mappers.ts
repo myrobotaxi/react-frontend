@@ -78,6 +78,7 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
 
   const vehicle: Vehicle = {
     id: prismaVehicle.id,
+    vin: prismaVehicle.vin ?? undefined,
     name: prismaVehicle.name,
     model: prismaVehicle.model,
     year: prismaVehicle.year,
