@@ -45,6 +45,17 @@ function hasFullData(vehicleData: TeslaVehicleData): boolean {
   return vehicleData.drive_state !== undefined;
 }
 
+const SETUP_STATUS_ORDER: SetupStatus[] = [
+  'pending_pairing', 'pairing_detected', 'config_pushed', 'waiting_connection', 'connected',
+];
+
+/** Returns the later of two SetupStatus values — never moves backwards. */
+function advanceSetupStatus(current: SetupStatus, next: SetupStatus): SetupStatus {
+  const currentIdx = SETUP_STATUS_ORDER.indexOf(current);
+  const nextIdx = SETUP_STATUS_ORDER.indexOf(next);
+  return nextIdx > currentIdx ? next : current;
+}
+
 /**
  * Sync vehicles from Tesla Fleet API into the database.
  * Internal function — called by getVehicles() and auth linkAccount event.
@@ -123,14 +134,6 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
       // previous values with mapper defaults.
       // Advance setupStatus based on pairing state.
       // Rules: never go backwards (e.g., don't reset 'connected' to 'config_pushed').
-      const SETUP_STATUS_ORDER: SetupStatus[] = [
-        'pending_pairing', 'pairing_detected', 'config_pushed', 'waiting_connection', 'connected',
-      ];
-      function advanceSetupStatus(current: SetupStatus, next: SetupStatus): SetupStatus {
-        const currentIdx = SETUP_STATUS_ORDER.indexOf(current);
-        const nextIdx = SETUP_STATUS_ORDER.indexOf(next);
-        return nextIdx > currentIdx ? next : current;
-      }
       let newSetupStatus: SetupStatus = existingSetupStatus as SetupStatus;
       if (keyPaired && !wasPreviouslyPaired) {
         newSetupStatus = advanceSetupStatus(newSetupStatus, 'pairing_detected');
