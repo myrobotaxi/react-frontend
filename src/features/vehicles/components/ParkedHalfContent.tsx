@@ -2,6 +2,7 @@ import type { Vehicle } from '@/types/vehicle';
 
 import { getBatteryColor, getBatteryTextColor, STATUS_CONFIG } from '@/lib/vehicle-helpers';
 
+import { ClimateCard, climateCardPropsFromVehicle } from './ClimateCard';
 import { VehicleDetailsBlock } from './VehicleDetailsBlock';
 
 /** Props for the ParkedHalfContent component. */
@@ -50,17 +51,8 @@ export function ParkedHalfContent({ vehicle }: ParkedHalfContentProps) {
       {/* Vehicle details */}
       <VehicleDetailsBlock vehicle={vehicle} />
 
-      {/* Temperature */}
-      <div className="flex gap-10 mb-5">
-        <div>
-          <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">Interior</p>
-          <p className="text-text-primary text-sm tabular-nums">{vehicle.interiorTemp}&deg;F</p>
-        </div>
-        <div>
-          <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">Exterior</p>
-          <p className="text-text-primary text-sm tabular-nums">{vehicle.exteriorTemp}&deg;F</p>
-        </div>
-      </div>
+      {/* Climate */}
+      <ClimateCard climate={climateCardPropsFromVehicle(vehicle)} />
 
       {/* Estimated Range */}
       <div className="mb-5">
