@@ -60,7 +60,7 @@ export function DrivingHalfContent({ vehicle, currentDrive }: DrivingHalfContent
       </div>
 
       {/* Climate */}
-      <ClimateCard {...climateCardPropsFromVehicle(vehicle)} />
+      <ClimateCard climate={climateCardPropsFromVehicle(vehicle)} />
 
       <p className="text-text-muted text-xs">Updated {vehicle.lastUpdated}</p>
     </div>

@@ -52,7 +52,7 @@ export function ParkedHalfContent({ vehicle }: ParkedHalfContentProps) {
       <VehicleDetailsBlock vehicle={vehicle} />
 
       {/* Climate */}
-      <ClimateCard {...climateCardPropsFromVehicle(vehicle)} />
+      <ClimateCard climate={climateCardPropsFromVehicle(vehicle)} />
 
       {/* Estimated Range */}
       <div className="mb-5">

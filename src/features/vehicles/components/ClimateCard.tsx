@@ -1,15 +1,13 @@
-import type { Vehicle, HvacPower, DefrostMode, ClimateKeeperMode } from '@/types/vehicle';
+import type { Vehicle, DefrostMode, ClimateKeeperMode } from '@/types/vehicle';
 
-/** Props for the ClimateCard component. */
-export interface ClimateCardProps {
+/** Domain object grouping all climate-related fields for a vehicle. */
+export interface ClimateData {
+  /** Whether the HVAC system is actively running. */
+  isClimateOn: boolean;
   /** Interior temperature in °F. */
   interiorTemp: number;
   /** Exterior temperature in °F. */
   exteriorTemp: number;
-  /** Whether the HVAC system is actively running. */
-  isClimateOn?: boolean;
-  /** Raw HVAC power state from Tesla telemetry. */
-  hvacPower?: HvacPower;
   /** Fan speed 0–10. */
   fanSpeed?: number;
   /** Driver set-point temperature in °F. */
@@ -26,13 +24,18 @@ export interface ClimateCardProps {
   climateKeeperMode?: ClimateKeeperMode;
 }
 
-/** Builds ClimateCardProps from a Vehicle, forwarding all climate fields. */
-export function climateCardPropsFromVehicle(v: Vehicle): ClimateCardProps {
+/** Props for the ClimateCard component. */
+export interface ClimateCardProps {
+  /** All climate data for the vehicle. */
+  climate: ClimateData;
+}
+
+/** Builds ClimateData from a Vehicle, forwarding all climate fields. */
+export function climateCardPropsFromVehicle(v: Vehicle): ClimateData {
   return {
+    isClimateOn: v.isClimateOn ?? false,
     interiorTemp: v.interiorTemp,
     exteriorTemp: v.exteriorTemp,
-    isClimateOn: v.isClimateOn,
-    hvacPower: v.hvacPower,
     fanSpeed: v.fanSpeed,
     driverTempSetting: v.driverTempSetting,
     passengerTempSetting: v.passengerTempSetting,
@@ -93,7 +96,7 @@ function SeatHeaterDots({ level }: { level: number }) {
  * Expanded state (climate on): shows fan speed, temp set-points, seat
  * heaters, defrost, and keeper mode.
  */
-export function ClimateCard(props: ClimateCardProps) {
+export function ClimateCard({ climate }: ClimateCardProps) {
   const {
     interiorTemp,
     exteriorTemp,
@@ -105,7 +108,7 @@ export function ClimateCard(props: ClimateCardProps) {
     seatHeaterLeft = 0,
     seatHeaterRight = 0,
     climateKeeperMode,
-  } = props;
+  } = climate;
 
   const modeLabel = keeperModeLabel(climateKeeperMode);
 
