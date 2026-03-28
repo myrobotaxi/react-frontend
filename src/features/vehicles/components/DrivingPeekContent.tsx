@@ -18,6 +18,19 @@ export interface DrivingPeekContentProps {
 }
 
 /**
+ * Derive a human-readable destination label from available vehicle data.
+ * Prefers the Tesla-provided name; falls back to coordinates; omits entirely
+ * when no data is available so the "Heading to" line is suppressed.
+ */
+function getDestinationLabel(vehicle: Vehicle): string {
+  if (vehicle.destinationName) return vehicle.destinationName;
+  if (vehicle.destinationLatitude != null && vehicle.destinationLongitude != null) {
+    return `${vehicle.destinationLatitude.toFixed(4)}, ${vehicle.destinationLongitude.toFixed(4)}`;
+  }
+  return '';
+}
+
+/**
  * Bottom sheet peek content when vehicle is driving.
  * Vehicle name, status badge, destination, trip progress bar, stats row.
  */
@@ -26,6 +39,8 @@ export function DrivingPeekContent({
   currentDrive,
   tripProgress,
 }: DrivingPeekContentProps) {
+  const destinationLabel = getDestinationLabel(vehicle);
+
   return (
     <div className="px-6">
       {/* Vehicle name + gear indicator + status badge */}
@@ -37,7 +52,7 @@ export function DrivingPeekContent({
         <StatusBadge status={vehicle.status} />
       </div>
       <p className="text-sm text-gold font-light mb-3">
-        Heading to {vehicle.destinationName}
+        {destinationLabel ? `Heading to ${destinationLabel}` : 'Driving'}
       </p>
 
       {/* Trip progress bar */}
@@ -45,7 +60,7 @@ export function DrivingPeekContent({
         progress={tripProgress}
         stops={vehicle.stops ?? []}
         originLabel={currentDrive?.startAddress || currentDrive?.startLocation || 'Origin'}
-        destinationLabel={vehicle.destinationName ?? 'Destination'}
+        destinationLabel={destinationLabel || 'Destination'}
       />
 
       {/* Key stats row */}

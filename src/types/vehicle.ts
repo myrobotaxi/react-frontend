@@ -65,6 +65,12 @@ export interface Vehicle {
   tripDistanceMiles?: number;
   tripDistanceRemaining?: number;
   stops?: TripStop[];
+  /** Navigation fields — populated via WebSocket real-time updates from Tesla RouteLine/nav data. */
+  routeCoordinates?: [number, number][];
+  destinationLatitude?: number;
+  destinationLongitude?: number;
+  originLatitude?: number;
+  originLongitude?: number;
   /** Climate fields — populated via WebSocket real-time updates. */
   isClimateOn?: boolean;
   hvacPower?: HvacPower;

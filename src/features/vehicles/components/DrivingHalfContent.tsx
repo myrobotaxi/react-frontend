@@ -14,10 +14,38 @@ export interface DrivingHalfContentProps {
 }
 
 /**
+ * Derive a human-readable start label from drive record and/or vehicle state.
+ * Prefers the stored drive address; falls back to live origin coordinates.
+ */
+function getStartLabel(vehicle: Vehicle, currentDrive?: Drive): string {
+  if (currentDrive?.startAddress) return currentDrive.startAddress;
+  if (currentDrive?.startLocation) return currentDrive.startLocation;
+  if (vehicle.originLatitude != null && vehicle.originLongitude != null) {
+    return `${vehicle.originLatitude.toFixed(4)}, ${vehicle.originLongitude.toFixed(4)}`;
+  }
+  return 'Current location';
+}
+
+/**
+ * Derive a human-readable destination label from available vehicle data.
+ * Prefers the Tesla-provided name; falls back to coordinates.
+ */
+function getDestinationLabel(vehicle: Vehicle): string {
+  if (vehicle.destinationName) return vehicle.destinationName;
+  if (vehicle.destinationLatitude != null && vehicle.destinationLongitude != null) {
+    return `${vehicle.destinationLatitude.toFixed(4)}, ${vehicle.destinationLongitude.toFixed(4)}`;
+  }
+  return 'Unknown';
+}
+
+/**
  * Extended bottom sheet content when vehicle is driving (half state).
  * Start/destination, stops, vehicle details, odometer, FSD, temps, timestamp.
  */
 export function DrivingHalfContent({ vehicle, currentDrive }: DrivingHalfContentProps) {
+  const startLabel = getStartLabel(vehicle, currentDrive);
+  const destinationLabel = getDestinationLabel(vehicle);
+
   return (
     <div className="px-6 mt-6 pb-8 animate-fade-in">
       <div className="h-px bg-border-default mb-6" />
@@ -25,15 +53,15 @@ export function DrivingHalfContent({ vehicle, currentDrive }: DrivingHalfContent
       {/* Start / Destination */}
       <div className="mb-5">
         <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">Start</p>
-        <p className="text-text-primary text-sm font-light">
-          {currentDrive?.startAddress || currentDrive?.startLocation || 'Unknown'}
-        </p>
+        <p className="text-text-primary text-sm font-light">{startLabel}</p>
       </div>
 
       <div className="mb-5">
         <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">Destination</p>
         <p className="text-text-primary text-sm font-light">
-          {vehicle.destinationName} — {vehicle.destinationAddress}
+          {vehicle.destinationAddress
+            ? `${destinationLabel} — ${vehicle.destinationAddress}`
+            : destinationLabel}
         </p>
       </div>
 
