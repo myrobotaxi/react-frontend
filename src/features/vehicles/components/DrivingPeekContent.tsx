@@ -31,15 +31,14 @@ function getDestinationLabel(vehicle: Vehicle): string {
 }
 
 /**
- * Derive a human-readable origin label. Prefers the drive record's address
- * (populated by backend geocoding); falls back to coordinates from telemetry.
+ * Derive a human-readable origin label from the drive record.
+ * Uses the drive's start address or location name — never falls back to
+ * vehicle.originLatitude/originLongitude, which reflects Tesla's nav origin
+ * (not necessarily where the drive actually started).
  */
-function getOriginLabel(vehicle: Vehicle, currentDrive?: Drive): string {
+function getOriginLabel(_vehicle: Vehicle, currentDrive?: Drive): string {
   if (currentDrive?.startAddress) return currentDrive.startAddress;
   if (currentDrive?.startLocation) return currentDrive.startLocation;
-  if (vehicle.originLatitude != null && vehicle.originLongitude != null) {
-    return `${vehicle.originLatitude.toFixed(4)}, ${vehicle.originLongitude.toFixed(4)}`;
-  }
   return 'Origin';
 }
 

@@ -82,13 +82,15 @@ describe('DrivingHalfContent', () => {
       expect(screen.getByText('Downtown')).toBeInTheDocument();
     });
 
-    it('falls back to origin coordinates when drive is absent', () => {
+    it('shows "Current location" when drive is absent (ignores Tesla nav origin)', () => {
       render(
         <DrivingHalfContent
           vehicle={makeVehicle({ originLatitude: 30.1234, originLongitude: -97.5678 })}
         />,
       );
-      expect(screen.getByText('30.1234, -97.5678')).toBeInTheDocument();
+      // Should NOT fall back to vehicle.originLatitude/originLongitude
+      expect(screen.queryByText('30.1234, -97.5678')).not.toBeInTheDocument();
+      expect(screen.getByText('Current location')).toBeInTheDocument();
     });
 
     it('shows "Current location" when no drive or coordinates are available', () => {

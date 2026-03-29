@@ -67,6 +67,8 @@ export interface Vehicle {
   stops?: TripStop[];
   /** Navigation fields — populated via WebSocket real-time updates from Tesla RouteLine/nav data. */
   routeCoordinates?: [number, number][];
+  /** Tesla's planned navigation polyline (route to destination). */
+  navRouteCoordinates?: [number, number][];
   destinationLatitude?: number;
   destinationLongitude?: number;
   originLatitude?: number;
