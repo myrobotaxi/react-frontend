@@ -14,15 +14,14 @@ export interface DrivingHalfContentProps {
 }
 
 /**
- * Derive a human-readable start label from drive record and/or vehicle state.
- * Prefers the stored drive address; falls back to live origin coordinates.
+ * Derive a human-readable start label from the drive record.
+ * Uses the drive's start address or location name — never falls back to
+ * vehicle.originLatitude/originLongitude, which reflects Tesla's nav origin
+ * (not necessarily where the drive actually started).
  */
-function getStartLabel(vehicle: Vehicle, currentDrive?: Drive): string {
+function getStartLabel(_vehicle: Vehicle, currentDrive?: Drive): string {
   if (currentDrive?.startAddress) return currentDrive.startAddress;
   if (currentDrive?.startLocation) return currentDrive.startLocation;
-  if (vehicle.originLatitude != null && vehicle.originLongitude != null) {
-    return `${vehicle.originLatitude.toFixed(4)}, ${vehicle.originLongitude.toFixed(4)}`;
-  }
   return 'Current location';
 }
 
