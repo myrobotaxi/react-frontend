@@ -38,7 +38,7 @@ export function ParkedHalfContent({ vehicle }: ParkedHalfContentProps) {
         </div>
         <div>
           <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">FSD Today</p>
-          <p className="text-gold text-sm tabular-nums font-medium">{vehicle.fsdMilesToday} mi</p>
+          <p className="text-gold text-sm tabular-nums font-medium">{vehicle.fsdMilesToday.toFixed(1)} mi</p>
         </div>
         <div>
           <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">Heading</p>

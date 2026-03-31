@@ -74,11 +74,17 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken, userId }: HomeSc
 
   const isDriving = vehicle.status === 'driving';
 
+  // Show route when nav is active OR vehicle is driving with route data.
+  // This prevents the route from disappearing during brief park→drive transitions
+  // (e.g. red lights) when Tesla nav is still active.
+  const navRoute = getLiveNavRoute(vehicle);
+  const hasNavRoute = !!(navRoute && navRoute.length >= 2);
+  const showRoute = isDriving || hasNavRoute;
+
   // The backend sends two distinct route fields via WebSocket:
   // - navRouteCoordinates: Tesla's planned navigation polyline (route to destination)
   // - routeCoordinates: accumulated GPS track (driven path)
   // Prefer the nav route (planned path ahead); fall back to driven GPS path or DB route points.
-  const navRoute = getLiveNavRoute(vehicle);
   const liveRoute = getLiveRoute(vehicle);
   const routePoints = (navRoute && navRoute.length >= 2)
     ? navRoute
@@ -105,7 +111,7 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken, userId }: HomeSc
             heading: vehicle.heading,
             speed: vehicle.speed,
           }}
-          route={{ show: isDriving, coordinates: routePoints, isDrivenPath }}
+          route={{ show: showRoute, coordinates: routePoints, isDrivenPath }}
           center={[vehicle.longitude, vehicle.latitude]}
           zoom={12}
           fitButtonBottom={sheet.currentHeight + 20}
