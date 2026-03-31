@@ -72,11 +72,14 @@ export function HomeScreen({ vehicles, drives, onSync, wsToken, userId }: HomeSc
     [vehicle.id, drives],
   );
 
-  const isDriving = vehicle.status === 'driving';
+  // Derive driving status from gear — don't rely on the backend status field
+  // which can be stale after page refresh (DB says "parked" until a gear
+  // update arrives, but Tesla only sends gear on CHANGE).
+  const isDriving = vehicle.gearPosition === 'D' || vehicle.gearPosition === 'R'
+    || vehicle.speed > 0
+    || vehicle.status === 'driving';
 
   // Show route when nav is active OR vehicle is driving with route data.
-  // This prevents the route from disappearing during brief park→drive transitions
-  // (e.g. red lights) when Tesla nav is still active.
   const navRoute = getLiveNavRoute(vehicle);
   const hasNavRoute = !!(navRoute && navRoute.length >= 2);
   const showRoute = isDriving || hasNavRoute;
