@@ -131,6 +131,9 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
   if (prismaVehicle.tripDistanceRemaining != null) {
     vehicle.tripDistanceRemaining = prismaVehicle.tripDistanceRemaining;
   }
+  if (prismaVehicle.navRouteCoordinates != null) {
+    vehicle.navRouteCoordinates = prismaVehicle.navRouteCoordinates as [number, number][];
+  }
   if (stops.length > 0) {
     vehicle.stops = stops;
   }
