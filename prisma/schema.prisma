@@ -67,7 +67,7 @@ model Vehicle {
   interiorTemp     Int           @default(0)
   exteriorTemp     Int           @default(0)
   odometerMiles    Int           @default(0)
-  fsdMilesToday    Float         @default(0)
+  fsdMilesSinceReset Float       @default(0)
   virtualKeyPaired Boolean       @default(false)
   setupStatus      SetupStatus   @default(pending_pairing)
   destinationName      String?

@@ -28,7 +28,7 @@ function createMockVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     exteriorTemp: 85,
     lastUpdated: new Date().toISOString(),
     odometerMiles: 10000,
-    fsdMilesToday: 0,
+    fsdMilesSinceReset: 0,
     virtualKeyPaired: true,
     setupStatus: 'connected',
     gearPosition: null,

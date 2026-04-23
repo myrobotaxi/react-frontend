@@ -98,7 +98,7 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
     exteriorTemp: prismaVehicle.exteriorTemp,
     lastUpdated: formatRelativeTime(prismaVehicle.lastUpdated),
     odometerMiles: prismaVehicle.odometerMiles,
-    fsdMilesToday: prismaVehicle.fsdMilesToday,
+    fsdMilesSinceReset: prismaVehicle.fsdMilesSinceReset,
     virtualKeyPaired: prismaVehicle.virtualKeyPaired,
     setupStatus: toSetupStatus(prismaVehicle.setupStatus),
   };

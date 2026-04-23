@@ -312,7 +312,7 @@ export function Home() {
                     </div>
                     <div>
                       <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">FSD Today</p>
-                      <p className="text-gold text-sm tabular-nums font-medium">{vehicle.fsdMilesToday} mi</p>
+                      <p className="text-gold text-sm tabular-nums font-medium">{vehicle.fsdMilesSinceReset} mi</p>
                     </div>
                   </div>
 
@@ -345,7 +345,7 @@ export function Home() {
                     </div>
                     <div>
                       <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">FSD Today</p>
-                      <p className="text-gold text-sm tabular-nums font-medium">{vehicle.fsdMilesToday} mi</p>
+                      <p className="text-gold text-sm tabular-nums font-medium">{vehicle.fsdMilesSinceReset} mi</p>
                     </div>
                     <div>
                       <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">Heading</p>

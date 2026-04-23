@@ -47,7 +47,7 @@ async function main() {
       interiorTemp: 72,
       exteriorTemp: 88,
       odometerMiles: 12847,
-      fsdMilesToday: 15.3,
+      fsdMilesSinceReset: 15.3,
       setupStatus: 'connected',
       destinationName: 'Domain Northside',
       destinationAddress: '11506 Century Oaks Terrace, Austin, TX',
@@ -83,7 +83,7 @@ async function main() {
       interiorTemp: 68,
       exteriorTemp: 88,
       odometerMiles: 3201,
-      fsdMilesToday: 4.9,
+      fsdMilesSinceReset: 4.9,
       setupStatus: 'connected',
     },
   });
