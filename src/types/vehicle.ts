@@ -53,7 +53,7 @@ export interface Vehicle {
   exteriorTemp: number;
   lastUpdated: string;
   odometerMiles: number;
-  fsdMilesToday: number;
+  fsdMilesSinceReset: number;
   virtualKeyPaired: boolean;
   setupStatus: SetupStatus;
   /** VIN — available after Tesla sync. Needed for pairing checks and telemetry. */

@@ -45,7 +45,7 @@ function makeVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     exteriorTemp: 68,
     lastUpdated: '2024-01-01T12:00:00Z',
     odometerMiles: 15000,
-    fsdMilesToday: 0,
+    fsdMilesSinceReset: 0,
     virtualKeyPaired: false,
     setupStatus: 'pending_pairing',
     ...overrides,

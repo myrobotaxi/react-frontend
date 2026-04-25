@@ -23,7 +23,7 @@ export interface Vehicle {
   exteriorTemp: number;
   lastUpdated: string;
   odometerMiles: number;
-  fsdMilesToday: number;
+  fsdMilesSinceReset: number;
   // Active trip info (only when status === 'driving')
   destinationName?: string;
   destinationAddress?: string;
@@ -89,7 +89,7 @@ export const vehicles: Vehicle[] = [
     exteriorTemp: 88,
     lastUpdated: '3s ago',
     odometerMiles: 12847,
-    fsdMilesToday: 15.3,
+    fsdMilesSinceReset: 15.3,
     destinationName: 'Domain Northside',
     destinationAddress: '11506 Century Oaks Terrace, Austin, TX',
     etaMinutes: 23,
@@ -119,7 +119,7 @@ export const vehicles: Vehicle[] = [
     exteriorTemp: 88,
     lastUpdated: '12s ago',
     odometerMiles: 3201,
-    fsdMilesToday: 4.9,
+    fsdMilesSinceReset: 4.9,
   },
 ];
 

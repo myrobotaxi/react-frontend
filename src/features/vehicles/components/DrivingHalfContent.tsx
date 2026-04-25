@@ -97,7 +97,7 @@ export function DrivingHalfContent({
         </div>
         <div>
           <p className="text-text-muted text-xs font-medium uppercase tracking-wider mb-1">FSD Today</p>
-          <p className="text-gold text-sm tabular-nums font-medium">{vehicle.fsdMilesToday.toFixed(1)} mi</p>
+          <p className="text-gold text-sm tabular-nums font-medium">{vehicle.fsdMilesSinceReset.toFixed(1)} mi</p>
         </div>
       </div>
 
