@@ -65,9 +65,9 @@ export interface Vehicle {
   tripDistanceMiles?: number;
   tripDistanceRemaining?: number;
   stops?: TripStop[];
-  /** Navigation fields — populated via WebSocket real-time updates from Tesla RouteLine/nav data. */
-  routeCoordinates?: [number, number][];
-  /** Tesla's planned navigation polyline (route to destination). */
+  /** Accumulated GPS trail of an active drive ("where the car has been") — populated via WebSocket vehicle_update frames carrying `driveTrailCoordinates` from the server's per-drive route accumulator. Distinct from `navRouteCoordinates`; never conflate the two. */
+  driveTrailCoordinates?: [number, number][];
+  /** Tesla's planned navigation polyline ("where the car is going") — destination route, member of the navigation atomic group. */
   navRouteCoordinates?: [number, number][];
   destinationLatitude?: number;
   destinationLongitude?: number;
