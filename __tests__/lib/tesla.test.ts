@@ -1,5 +1,9 @@
+import { Buffer } from 'node:buffer';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+import { __resetEncryptor } from '@/lib/account-encryption';
+import { KEY_LEN } from '@/lib/cryptox';
 import {
   TESLA_AUTH_URL,
   TESLA_TOKEN_URL,
@@ -9,6 +13,12 @@ import {
   refreshTeslaToken,
   getTeslaAccessToken,
 } from '@/lib/tesla';
+
+// Synthetic 32-byte key for the cryptox dual-write path. The MYR-62
+// rollout writes both plaintext and *_enc columns on refresh, so
+// every getTeslaAccessToken test that hits the refresh branch needs a
+// configured KeySet.
+const TEST_ENCRYPTION_KEY_B64 = Buffer.alloc(KEY_LEN, 0x42).toString('base64');
 
 // ─── Mock prisma ────────────────────────────────────────────────────────────
 
@@ -129,13 +139,16 @@ describe('getTeslaAccessToken', () => {
       ...originalEnv,
       AUTH_TESLA_ID: 'test-client-id',
       AUTH_TESLA_SECRET: 'test-client-secret',
+      ENCRYPTION_KEY: TEST_ENCRYPTION_KEY_B64,
     };
+    __resetEncryptor();
     mockFindFirst.mockReset();
     mockUpdate.mockReset();
   });
 
   afterEach(() => {
     process.env = originalEnv;
+    __resetEncryptor();
     vi.restoreAllMocks();
   });
 
@@ -215,6 +228,19 @@ describe('getTeslaAccessToken', () => {
         }),
       }),
     );
+
+    // MYR-62: dual-write must also populate the *_enc shadow columns
+    // on every refresh. If this fails, refreshes are silently writing
+    // stale ciphertext to the encrypted columns — a rollback hazard.
+    const updateCall = mockUpdate.mock.calls[0]?.[0] as
+      | { data: Record<string, unknown> }
+      | undefined;
+    expect(updateCall?.data.access_token_enc).toEqual(expect.any(String));
+    expect(updateCall?.data.refresh_token_enc).toEqual(expect.any(String));
+    expect(
+      typeof updateCall?.data.access_token_enc === 'string' &&
+        (updateCall?.data.access_token_enc as string).length,
+    ).toBeGreaterThan(0);
   });
 
   it('refreshes token within 5-minute buffer', async () => {
