@@ -1,6 +1,7 @@
 import { detectAndRecordDrive } from '@/lib/drive-detection';
 import { prisma } from '@/lib/prisma';
 import { getTeslaAccessToken } from '@/lib/tesla';
+import { buildEncryptedVehicleGPSWrite } from '@/lib/vehicle-gps-encryption';
 import {
   listVehicles as teslaListVehicles,
   getVehicleData,
@@ -168,14 +169,23 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
       }
 
       if (hasValidCoords) {
-        updateData.latitude = upsertData.latitude;
-        updateData.longitude = upsertData.longitude;
+        Object.assign(
+          updateData,
+          buildEncryptedVehicleGPSWrite({
+            latitude: upsertData.latitude,
+            longitude: upsertData.longitude,
+          }),
+        );
       }
 
       const vehicle = await prisma.vehicle.upsert({
         where: { teslaVehicleId },
         create: {
           ...upsertData,
+          ...buildEncryptedVehicleGPSWrite({
+            latitude: upsertData.latitude,
+            longitude: upsertData.longitude,
+          }),
           userId,
           color: '',
           licensePlate: '',

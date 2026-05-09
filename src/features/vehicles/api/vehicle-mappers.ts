@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 
+import { readVehicleGPS } from '@/lib/vehicle-gps-encryption';
 import { VALID_GEARS } from '@/types/vehicle';
 import type { Vehicle, TripStop, VehicleStatus, GearPosition, SetupStatus } from '@/types/vehicle';
 
@@ -76,6 +77,8 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
     type: stop.type,
   }));
 
+  const gps = readVehicleGPS(prismaVehicle);
+
   const vehicle: Vehicle = {
     id: prismaVehicle.id,
     vin: prismaVehicle.vin ?? undefined,
@@ -92,8 +95,8 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
     heading: prismaVehicle.heading,
     locationName: prismaVehicle.locationName,
     locationAddress: prismaVehicle.locationAddress,
-    latitude: prismaVehicle.latitude,
-    longitude: prismaVehicle.longitude,
+    latitude: gps.latitude ?? 0,
+    longitude: gps.longitude ?? 0,
     interiorTemp: prismaVehicle.interiorTemp,
     exteriorTemp: prismaVehicle.exteriorTemp,
     lastUpdated: formatRelativeTime(prismaVehicle.lastUpdated),
@@ -110,17 +113,17 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
   if (prismaVehicle.destinationAddress) {
     vehicle.destinationAddress = prismaVehicle.destinationAddress;
   }
-  if (prismaVehicle.destinationLatitude != null) {
-    vehicle.destinationLatitude = prismaVehicle.destinationLatitude;
+  if (gps.destinationLatitude != null) {
+    vehicle.destinationLatitude = gps.destinationLatitude;
   }
-  if (prismaVehicle.destinationLongitude != null) {
-    vehicle.destinationLongitude = prismaVehicle.destinationLongitude;
+  if (gps.destinationLongitude != null) {
+    vehicle.destinationLongitude = gps.destinationLongitude;
   }
-  if (prismaVehicle.originLatitude != null) {
-    vehicle.originLatitude = prismaVehicle.originLatitude;
+  if (gps.originLatitude != null) {
+    vehicle.originLatitude = gps.originLatitude;
   }
-  if (prismaVehicle.originLongitude != null) {
-    vehicle.originLongitude = prismaVehicle.originLongitude;
+  if (gps.originLongitude != null) {
+    vehicle.originLongitude = gps.originLongitude;
   }
   if (prismaVehicle.etaMinutes != null) {
     vehicle.etaMinutes = prismaVehicle.etaMinutes;
