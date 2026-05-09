@@ -100,6 +100,12 @@ model Vehicle {
   tripDistanceMiles     Float?
   tripDistanceRemaining Float?
   navRouteCoordinates   Json?
+  // MYR-64 Phase 1 — encrypted shadow column for the live nav-route
+  // polyline (P1 per data-classification.md §1.4). Dual-write window:
+  // writes go to BOTH Json plaintext AND TEXT ciphertext; reads prefer
+  // *Enc with JSON.stringify/parse at the crypto boundary, plaintext
+  // fallback. See src/lib/route-blob-encryption.ts.
+  navRouteCoordinatesEnc String?
   lastUpdated           DateTime      @default(now())
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -166,6 +172,12 @@ model Drive {
   fsdPercentage    Float
   interventions    Int
   routePoints      Json
+  // MYR-64 Phase 1 — encrypted shadow column for the recorded drive
+  // route polyline (P1 per data-classification.md §1.4). Dual-write
+  // window: writes go to BOTH Json plaintext AND TEXT ciphertext; reads
+  // prefer *Enc with JSON.stringify/parse at the crypto boundary,
+  // plaintext fallback. See src/lib/route-blob-encryption.ts.
+  routePointsEnc   String?
   createdAt        DateTime @default(now())
   vehicle          Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
