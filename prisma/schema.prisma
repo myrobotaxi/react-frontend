@@ -37,6 +37,15 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
+  // ─── Encrypted shadows (MYR-62 Phase 1) ─────────────────────────────────
+  // AES-256-GCM ciphertext (base64) for each OAuth token. Written
+  // alongside the plaintext columns during the dual-write rollout; a
+  // follow-up issue backfills, flips reads to enc-only, then drops the
+  // plaintext columns. Wire format owned by lib/cryptox (TS) and
+  // internal/cryptox (Go) — see docs/contracts/data-classification.md.
+  access_token_enc  String? @db.Text
+  refresh_token_enc String? @db.Text
+  id_token_enc      String? @db.Text
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])

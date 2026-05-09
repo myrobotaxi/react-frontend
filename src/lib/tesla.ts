@@ -3,6 +3,10 @@
  * Used for OAuth account linking and API access.
  */
 
+import {
+  buildEncryptedAccountWrite,
+  readAccountToken,
+} from '@/lib/account-encryption';
 import { prisma } from '@/lib/prisma';
 
 // ─── Tesla OAuth / Fleet API constants ──────────────────────────────────────
@@ -70,24 +74,40 @@ export async function getTeslaAccessToken(
     where: { userId, provider: 'tesla' },
   });
 
-  if (!account?.access_token || !account.refresh_token) {
+  if (!account) return null;
+
+  // Read through the dual-read helper: prefer *_enc, fall back to
+  // plaintext for legacy rows that haven't been backfilled yet.
+  // (MYR-62 Phase 1.)
+  const accessToken = readAccountToken(account, 'access_token');
+  const refreshToken = readAccountToken(account, 'refresh_token');
+
+  if (!accessToken || !refreshToken) {
     return null;
   }
 
   // Check if token is still valid (with 5-minute buffer)
   const now = Math.floor(Date.now() / 1000);
   if (account.expires_at && account.expires_at > now + 300) {
-    return account.access_token;
+    return accessToken;
   }
 
-  // Token expired — refresh it
-  const tokens = await refreshTeslaToken(account.refresh_token);
+  // Token expired — refresh it. Dual-write both plaintext and *_enc
+  // columns so the encrypted shadow stays in lockstep with the
+  // refresh.
+  const tokens = await refreshTeslaToken(refreshToken);
+  const dual = buildEncryptedAccountWrite({
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+  });
 
   await prisma.account.update({
     where: { id: account.id },
     data: {
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
+      access_token: dual.access_token,
+      refresh_token: dual.refresh_token,
+      access_token_enc: dual.access_token_enc,
+      refresh_token_enc: dual.refresh_token_enc,
       expires_at: now + tokens.expires_in,
     },
   });

@@ -1,8 +1,10 @@
 import NextAuth from 'next-auth';
+import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 import Google from 'next-auth/providers/google';
 import Apple from 'next-auth/providers/apple';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 
+import { buildEncryptedAccountWrite } from '@/lib/account-encryption';
 import { prisma } from '@/lib/prisma';
 import {
   TESLA_AUTH_URL,
@@ -12,6 +14,43 @@ import {
   TESLA_ISSUER,
   TESLA_SCOPES,
 } from '@/lib/tesla';
+
+/**
+ * Wraps `@auth/prisma-adapter`'s `linkAccount` so OAuth tokens are
+ * dual-written: plaintext columns AND their *_enc shadows are
+ * populated on every Account create. Reads still go through the
+ * default adapter — the dual-read fallback is implemented at the
+ * call sites that actually consume tokens (e.g., `getTeslaAccessToken`).
+ *
+ * MYR-62 Phase 1 — paired with internal/cryptox in the telemetry repo.
+ */
+function withEncryptedAccountAdapter(adapter: Adapter): Adapter {
+  const original = adapter.linkAccount;
+  if (!original) return adapter;
+  // Return-type widening (Promise<void> | Awaitable<AdapterAccount | ...>)
+  // makes the inferred wrapper signature too loose. We intentionally
+  // mirror the original's exact return shape via a typed cast on the
+  // forwarded call so downstream NextAuth code sees the same union it
+  // would from the unwrapped adapter.
+  const wrapped: Adapter['linkAccount'] = (account: AdapterAccount) => {
+    const dual = buildEncryptedAccountWrite({
+      access_token: account.access_token,
+      refresh_token: account.refresh_token,
+      id_token: account.id_token,
+    });
+    // Only override the encrypted shadows — preserve the original
+    // plaintext values so NextAuth's adapter contract (which expects
+    // them on the returned AdapterAccount) is unaffected.
+    const augmented = {
+      ...account,
+      access_token_enc: dual.access_token_enc,
+      refresh_token_enc: dual.refresh_token_enc,
+      id_token_enc: dual.id_token_enc,
+    } as AdapterAccount;
+    return original(augmented) as ReturnType<NonNullable<Adapter['linkAccount']>>;
+  };
+  return { ...adapter, linkAccount: wrapped };
+}
 
 /**
  * Reassign a Tesla account (and its vehicles) from an orphan user to the real
@@ -56,7 +95,7 @@ async function reassignTeslaToCurrentUser(
 }
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: withEncryptedAccountAdapter(PrismaAdapter(prisma)),
   session: { strategy: 'jwt' },
   providers: [
     Google({ allowDangerousEmailAccountLinking: true }),
