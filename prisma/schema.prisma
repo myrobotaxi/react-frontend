@@ -189,6 +189,39 @@ enum InvitePermission {
   live_history
 }
 
+// ─── Audit Log ───────────────────────────────────────────────────────────────
+//
+// Append-only audit trail for FR-10.2 / NFR-3.29. Schema mirrors
+// docs/contracts/data-lifecycle.md §4.1 in the telemetry repo exactly.
+//
+// Notable design decisions:
+//   - `userId` is intentionally NOT a relation/foreign key to User. After
+//     FR-10.1 cascade deletion, the audit row must outlive the User row that
+//     triggered the deletion. See data-lifecycle.md §4.5.
+//   - Append-only enforcement lives at the database level via two triggers
+//     (BEFORE UPDATE, BEFORE DELETE) that raise an exception. The triggers
+//     are defined in the migration's raw SQL block (Prisma cannot model them).
+//     See data-lifecycle.md §4.3.
+//   - The Go telemetry server holds Insert-only access via raw pgx for
+//     system-initiated rows (drives_pruned, mask_applied, tokens_refreshed).
+//     The Next.js app writes user-initiated rows via Prisma `auditLog.create`.
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  timestamp  DateTime @default(now())
+  action     String
+  targetType String
+  targetId   String
+  initiator  String
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+}
+
 // ─── Settings ────────────────────────────────────────────────────────────────
 
 model Settings {
