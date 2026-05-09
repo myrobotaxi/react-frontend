@@ -17,6 +17,10 @@ import { totalDistanceFromRoutePoints } from '@/lib/geo';
 import type { RoutePoint } from '@/lib/geo';
 import { reverseGeocode } from '@/lib/geocode';
 import { prisma } from '@/lib/prisma';
+import {
+  buildEncryptedRoutePointsWrite,
+  readRoutePoints,
+} from '@/lib/route-blob-encryption';
 import type { VehicleStatus } from '@/types/vehicle';
 
 // Re-export for consumers
@@ -91,6 +95,7 @@ async function startDrive(input: DriveDetectionInput): Promise<void> {
     lat: input.latitude, lng: input.longitude,
     timestamp: now.toISOString(), speed: input.speed,
   };
+  const initialPoints: RoutePoint[] = [point];
 
   // Reverse geocode start location (graceful fallback to coords on failure)
   const geo = await reverseGeocode(input.latitude, input.longitude);
@@ -117,7 +122,9 @@ async function startDrive(input: DriveDetectionInput): Promise<void> {
       fsdMiles: 0,
       fsdPercentage: 0,
       interventions: 0,
-      routePoints: [point] as unknown as Prisma.InputJsonValue,
+      routePoints: initialPoints as unknown as Prisma.InputJsonValue,
+      // MYR-64 dual-write: encrypted shadow alongside the plaintext Json.
+      ...buildEncryptedRoutePointsWrite(initialPoints),
     },
   });
 
@@ -130,11 +137,12 @@ async function updateActiveDrive(
 ): Promise<void> {
   const drive = await prisma.drive.findUnique({
     where: { id: driveId },
-    select: { routePoints: true, maxSpeedMph: true },
+    select: { routePoints: true, routePointsEnc: true, maxSpeedMph: true },
   });
   if (!drive) return;
 
-  const routePoints = (drive.routePoints as unknown as RoutePoint[]) ?? [];
+  // Dual-read: prefer the encrypted shadow, fall back to plaintext.
+  const routePoints = readRoutePoints(drive);
   routePoints.push({
     lat: input.latitude, lng: input.longitude,
     timestamp: new Date().toISOString(), speed: input.speed,
@@ -144,6 +152,8 @@ async function updateActiveDrive(
     where: { id: driveId },
     data: {
       routePoints: routePoints as unknown as Prisma.InputJsonValue,
+      // MYR-64 dual-write: encrypted shadow alongside the plaintext Json.
+      ...buildEncryptedRoutePointsWrite(routePoints),
       maxSpeedMph: Math.max(drive.maxSpeedMph, input.speed),
     },
   });
@@ -168,7 +178,8 @@ async function endDrive(
     (now.getTime() - startTime.getTime()) / 60_000,
   );
 
-  const routePoints = (drive.routePoints as unknown as RoutePoint[]) ?? [];
+  // Dual-read: prefer the encrypted shadow, fall back to plaintext.
+  const routePoints = readRoutePoints(drive);
 
   // Add final point if we have valid coordinates
   if (hasEndCoords) {
@@ -224,6 +235,8 @@ async function endDrive(
       energyUsedKwh,
       endChargeLevel: input.chargeLevel,
       routePoints: routePoints as unknown as Prisma.InputJsonValue,
+      // MYR-64 dual-write: encrypted shadow alongside the plaintext Json.
+      ...buildEncryptedRoutePointsWrite(routePoints),
     },
   });
 
