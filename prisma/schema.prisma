@@ -75,6 +75,11 @@ model Vehicle {
   locationAddress       String        @default("")
   latitude              Float         @default(0)
   longitude             Float         @default(0)
+  // MYR-63 Phase 1 — encrypted shadow columns (P1 per data-classification.md §1.3,
+  // NFR-3.23). Dual-write window: writes go to BOTH plaintext Float and *Enc TEXT;
+  // reads prefer *Enc with plaintext fallback. See src/lib/vehicle-gps-encryption.ts.
+  latitudeEnc             String?
+  longitudeEnc            String?
   interiorTemp          Int           @default(0)
   exteriorTemp          Int           @default(0)
   odometerMiles         Int           @default(0)
@@ -85,8 +90,12 @@ model Vehicle {
   destinationAddress    String?
   destinationLatitude   Float?
   destinationLongitude  Float?
+  destinationLatitudeEnc  String?
+  destinationLongitudeEnc String?
   originLatitude        Float?
   originLongitude       Float?
+  originLatitudeEnc       String?
+  originLongitudeEnc      String?
   etaMinutes            Int?
   tripDistanceMiles     Float?
   tripDistanceRemaining Float?
