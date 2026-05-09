@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 
+import { readNavRouteCoordinates } from '@/lib/route-blob-encryption';
 import { readVehicleGPS } from '@/lib/vehicle-gps-encryption';
 import { VALID_GEARS } from '@/types/vehicle';
 import type { Vehicle, TripStop, VehicleStatus, GearPosition, SetupStatus } from '@/types/vehicle';
@@ -134,8 +135,12 @@ export function mapPrismaVehicleToVehicle(prismaVehicle: PrismaVehicleWithStops)
   if (prismaVehicle.tripDistanceRemaining != null) {
     vehicle.tripDistanceRemaining = prismaVehicle.tripDistanceRemaining;
   }
-  if (prismaVehicle.navRouteCoordinates != null) {
-    vehicle.navRouteCoordinates = prismaVehicle.navRouteCoordinates as [number, number][];
+  // Dual-read for the encrypted nav-route shadow column (MYR-64 Phase 1).
+  // Decrypt failures fall through to plaintext with a warn — corruption
+  // of a 100KB+ blob must not 500 the request.
+  const navRoute = readNavRouteCoordinates(prismaVehicle);
+  if (navRoute != null) {
+    vehicle.navRouteCoordinates = navRoute;
   }
   if (stops.length > 0) {
     vehicle.stops = stops;

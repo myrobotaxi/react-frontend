@@ -7,20 +7,28 @@ import { auth } from '@/auth';
 import { normalizeRoutePoints } from '@/features/drives/api/normalize-route-points';
 import { formatLocation, formatTime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
+import { readRoutePoints } from '@/lib/route-blob-encryption';
 import type { Drive, DriveSortBy } from '@/types/drive';
 
 /**
  * Map a Prisma Drive record to the shared Drive interface.
  * Converts RoutePoint objects to LngLat tuples and formats time/location fields.
+ *
+ * MYR-64 Phase 1 dual-read: route points are sourced via
+ * `readRoutePoints`, which prefers the encrypted shadow column with a
+ * plaintext fallback. The decoded value still flows through
+ * `normalizeRoutePoints` to coerce stored RoutePoint objects (and
+ * legacy mock-data LngLat tuples) into the canonical `LngLat[]` shape.
  */
-function mapDrive({ createdAt, routePoints, ...rest }: PrismaDrive): Drive {
+function mapDrive({ createdAt, routePoints, routePointsEnc, ...rest }: PrismaDrive): Drive {
+  const decoded = readRoutePoints({ routePoints, routePointsEnc });
   return {
     ...rest,
     startTime: formatTime(rest.startTime),
     endTime: formatTime(rest.endTime),
     startLocation: formatLocation(rest.startLocation),
     endLocation: formatLocation(rest.endLocation),
-    routePoints: normalizeRoutePoints(routePoints),
+    routePoints: normalizeRoutePoints(decoded),
   };
 }
 
