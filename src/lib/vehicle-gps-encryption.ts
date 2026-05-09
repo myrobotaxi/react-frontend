@@ -203,9 +203,14 @@ export function buildEncryptedVehicleGPSWrite(
     const lngEncCol = `${lng}Enc` as keyof GPSEncShadowPayload;
 
     if (latVal === null || lngVal === null) {
-      // Clear both shadows. (If only one half is null we treat the
-      // pair as a clear — a mixed null/number pair would violate
-      // atomic-pair semantics and is rejected at read time anyway.)
+      if (latVal !== lngVal) {
+        // Mixed null / non-null pair. Clearing both shadows is the
+        // correct atomic-pair recovery, but the caller likely has a
+        // bug — surface it.
+        console.warn(
+          `[vehicle-gps-encryption] mixed null/number pair for (${lat}, ${lng}); clearing both shadows`,
+        );
+      }
       (out as Record<string, unknown>)[latEncCol] = null;
       (out as Record<string, unknown>)[lngEncCol] = null;
       continue;

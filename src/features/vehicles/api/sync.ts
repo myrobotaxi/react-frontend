@@ -169,6 +169,8 @@ export async function syncVehiclesFromTesla(userId: string): Promise<number> {
       }
 
       if (hasValidCoords) {
+        updateData.latitude = upsertData.latitude;
+        updateData.longitude = upsertData.longitude;
         Object.assign(
           updateData,
           buildEncryptedVehicleGPSWrite({
