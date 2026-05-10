@@ -24,23 +24,8 @@
 import { NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
+import { errorEnvelope } from '@/lib/api-errors';
 import { prisma } from '@/lib/prisma';
-
-interface ErrorEnvelope {
-  error: {
-    code: string;
-    message: string;
-    subCode: string | null;
-  };
-}
-
-function errorEnvelope(
-  code: string,
-  message: string,
-  subCode: string | null = null,
-): ErrorEnvelope {
-  return { error: { code, message, subCode } };
-}
 
 export async function DELETE(): Promise<NextResponse> {
   const session = await auth();

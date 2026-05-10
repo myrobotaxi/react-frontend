@@ -2,221 +2,48 @@
  * GET /api/users/me/export
  *
  * MYR-75 — GDPR Art. 15 (right of access) and Art. 20 (right to data
- * portability) data-export endpoint. Returns a JSON archive of every row
- * the authenticated user owns, with all P1 columns decrypted at the
- * crypto boundary (this is the whole point: the user is requesting a
- * machine-readable copy of their own data). The endpoint is
- * authenticated and only ever returns rows belonging to the caller —
- * we never serve another user's data.
+ * portability). Returns a JSON archive of every row the authenticated
+ * user owns, with all P1 columns decrypted at the crypto boundary.
  *
- * Owned by the Next.js app, mirroring the MYR-72 / MYR-73 ownership of
- * `DELETE /api/users/me` (rest-api.md §10 DV-23, RESOLVED 2026-05-08).
+ * Owned by the Next.js app per `rest-api.md` §10 DV-23 (RESOLVED 2026-05-08).
  *
- * The handler runs a single Prisma `$transaction` for read-consistency
- * and to atomically insert the audit-log row alongside the export read:
+ * Single Prisma `$transaction` reads the ownership graph and inserts the
+ * `data_exported` AuditLog row atomically. Audit metadata is P0 counts only
+ * per CG-DL-5 (`{vehicleCount, driveCount, inviteCount, auditCount}`).
  *
- *   1. Read profile / settings / vehicles (with stops) / drives /
- *      invites (sender + recipient) / audit log rows where userId == self.
- *   2. INSERT a `data_exported` AuditLog row with metadata =
- *      {vehicleCount, driveCount, inviteCount, auditCount}. CG-DL-5
- *      forbids any P1 values in metadata; counts only.
- *   3. Return the archive plus the freshly-inserted `auditLogId`.
+ * What the response contains: User profile (excluding tokens), Account
+ * identities (provider/scope only — never tokens or *_enc shadows),
+ * Settings, Vehicles (GPS + nav route decrypted), Drives (route points
+ * decrypted), Invites (sender + recipient), AuditLog rows where
+ * `userId == self`. The freshly-inserted `data_exported` row is appended
+ * to `auditLog` so the export contains its own audit footprint.
  *
- * P1 decryption policy — what the response contains:
- *   • Vehicle GPS pairs (latitude/longitude, destination*, origin*) via
- *     `readVehicleGPS`.
- *   • Vehicle.navRouteCoordinatesEnc via `readNavRouteCoordinates`.
- *   • Drive.routePointsEnc via `readRoutePoints`.
+ * What the response excludes: OAuth credentials (`access_token`,
+ * `refresh_token`, `id_token`, and their `*_enc` shadows). Issued by
+ * Google for our app to call Google APIs on the user's behalf — not
+ * user-owned data; out of scope for an Art. 15 export. Enforced by the
+ * explicit `select` on `account.findMany` and asserted by the security
+ * regression test.
  *
- * Excluded from the response on principle (security regression test
- * `__tests__/.../route.test.ts` enforces these):
- *   • `Account.access_token` / `Account.refresh_token` / `Account.id_token`
- *     and their `*_enc` shadow columns. OAuth credentials are issued by
- *     Google for our app to call Google APIs on the user's behalf — they
- *     are NOT user-owned data and are explicitly out of scope for an
- *     Art. 15 export.
- *   • `User.image` and `User.emailVerified` are included for completeness;
- *     `Account.providerAccountId` is included because it identifies the
- *     OAuth identity (P0, not credential material).
- *
- * Error envelope follows rest-api.md §4.1.
+ * Error envelope per `rest-api.md` §4.1.
  */
 
 import { NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
+import { errorEnvelope } from '@/lib/api-errors';
 import { prisma } from '@/lib/prisma';
-import { readNavRouteCoordinates, readRoutePoints } from '@/lib/route-blob-encryption';
-import { readVehicleGPS } from '@/lib/vehicle-gps-encryption';
 
-interface ErrorEnvelope {
-  error: {
-    code: string;
-    message: string;
-    subCode: string | null;
-  };
-}
-
-function errorEnvelope(
-  code: string,
-  message: string,
-  subCode: string | null = null,
-): ErrorEnvelope {
-  return { error: { code, message, subCode } };
-}
-
-// ─── Response shapes ─────────────────────────────────────────────────────────
-
-interface ExportProfile {
-  id: string;
-  email: string | null;
-  name: string | null;
-  image: string | null;
-  emailVerified: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ExportAccountIdentity {
-  id: string;
-  type: string;
-  provider: string;
-  providerAccountId: string;
-  scope: string | null;
-  expiresAt: number | null;
-}
-
-interface ExportSettings {
-  teslaLinked: boolean;
-  teslaVehicleName: string | null;
-  virtualKeyPaired: boolean;
-  keyPairingDeferredAt: string | null;
-  keyPairingReminderCount: number;
-  notifyDriveStarted: boolean;
-  notifyDriveCompleted: boolean;
-  notifyChargingComplete: boolean;
-  notifyViewerJoined: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ExportTripStop {
-  id: string;
-  name: string;
-  address: string;
-  type: string;
-}
-
-interface ExportVehicle {
-  id: string;
-  teslaVehicleId: string | null;
-  vin: string | null;
-  name: string;
-  model: string;
-  year: number;
-  color: string;
-  licensePlate: string;
-  chargeLevel: number;
-  estimatedRange: number;
-  chargeState: string | null;
-  timeToFull: number | null;
-  status: string;
-  speed: number;
-  gearPosition: string | null;
-  heading: number;
-  locationName: string;
-  locationAddress: string;
-  latitude: number | null;
-  longitude: number | null;
-  interiorTemp: number;
-  exteriorTemp: number;
-  odometerMiles: number;
-  fsdMilesSinceReset: number;
-  virtualKeyPaired: boolean;
-  setupStatus: string;
-  destinationName: string | null;
-  destinationAddress: string | null;
-  destinationLatitude: number | null;
-  destinationLongitude: number | null;
-  originLatitude: number | null;
-  originLongitude: number | null;
-  etaMinutes: number | null;
-  tripDistanceMiles: number | null;
-  tripDistanceRemaining: number | null;
-  navRouteCoordinates: Array<[number, number]> | null;
-  lastUpdated: string;
-  createdAt: string;
-  updatedAt: string;
-  stops: ExportTripStop[];
-}
-
-interface ExportDrive {
-  id: string;
-  vehicleId: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  startLocation: string;
-  startAddress: string;
-  endLocation: string;
-  endAddress: string;
-  distanceMiles: number;
-  durationMinutes: number;
-  avgSpeedMph: number;
-  maxSpeedMph: number;
-  energyUsedKwh: number;
-  startChargeLevel: number;
-  endChargeLevel: number;
-  fsdMiles: number;
-  fsdPercentage: number;
-  interventions: number;
-  routePoints: Array<{ lat: number; lng: number; timestamp: string; speed: number }>;
-  createdAt: string;
-}
-
-interface ExportInvite {
-  id: string;
-  vehicleId: string;
-  senderId: string;
-  label: string;
-  email: string;
-  status: string;
-  permission: string;
-  sentDate: string;
-  acceptedDate: string | null;
-  lastSeen: string | null;
-  isOnline: boolean;
-  createdAt: string;
-  updatedAt: string;
-  role: 'sender' | 'recipient';
-}
-
-interface ExportAuditLog {
-  id: string;
-  userId: string;
-  timestamp: string;
-  action: string;
-  targetType: string;
-  targetId: string;
-  initiator: string;
-  metadata: unknown;
-  createdAt: string;
-}
-
-interface ExportArchive {
-  exportVersion: 1;
-  exportedAt: string;
-  auditLogId: string;
-  profile: ExportProfile;
-  accounts: ExportAccountIdentity[];
-  settings: ExportSettings | null;
-  vehicles: ExportVehicle[];
-  drives: ExportDrive[];
-  invites: ExportInvite[];
-  auditLog: ExportAuditLog[];
-}
-
-// ─── Handler ─────────────────────────────────────────────────────────────────
+import {
+  mapAccountToExport,
+  mapAuditLogToExport,
+  mapDriveToExport,
+  mapInviteToExport,
+  mapProfileToExport,
+  mapSettingsToExport,
+  mapVehicleToExport,
+} from './mappers';
+import type { ExportArchive, ExportAuditLog } from './types';
 
 export async function GET(): Promise<NextResponse> {
   const session = await auth();
@@ -243,19 +70,12 @@ export async function GET(): Promise<NextResponse> {
           updatedAt: true,
         },
       });
-
-      if (!user) {
-        // Authenticated session but no user row — treat as auth failure
-        // rather than leaking an empty archive.
-        return null;
-      }
+      if (!user) return null;
 
       const accounts = await tx.account.findMany({
         where: { userId },
-        // Explicit `select` — never leak OAuth tokens, plaintext or
-        // encrypted, in the export response. Token columns
-        // (`access_token`, `refresh_token`, `id_token`, and their
-        // `_enc` shadows) are intentionally excluded.
+        // Explicit allowlist — never leak OAuth tokens (plaintext or
+        // encrypted shadows) in the export.
         select: {
           id: true,
           type: true,
@@ -266,9 +86,7 @@ export async function GET(): Promise<NextResponse> {
         },
       });
 
-      const settings = await tx.settings.findUnique({
-        where: { userId },
-      });
+      const settings = await tx.settings.findUnique({ where: { userId } });
 
       const vehicles = await tx.vehicle.findMany({
         where: { userId },
@@ -281,12 +99,13 @@ export async function GET(): Promise<NextResponse> {
         orderBy: { createdAt: 'asc' },
       });
 
+      // Invite scope: invites the user sent OR invites on vehicles the
+      // user owns. Invites where someone else invited the caller's email
+      // address but neither side maps to a User row are intentionally
+      // out of scope (no `recipientId` column to query against).
       const invites = await tx.invite.findMany({
         where: {
-          OR: [
-            { senderId: userId },
-            { vehicle: { userId } },
-          ],
+          OR: [{ senderId: userId }, { vehicle: { userId } }],
         },
         orderBy: { sentDate: 'asc' },
       });
@@ -297,7 +116,7 @@ export async function GET(): Promise<NextResponse> {
       });
 
       // Insert the data_exported row in the same transaction. CG-DL-5:
-      // P0 metadata only — counts and opaque IDs, never P1 values.
+      // P0 counts only — no PII, GPS, or tokens.
       const auditEntry = await tx.auditLog.create({
         data: {
           userId,
@@ -327,162 +146,20 @@ export async function GET(): Promise<NextResponse> {
         createdAt: auditEntry.createdAt.toISOString(),
       };
 
-      const profile: ExportProfile = {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        image: user.image,
-        emailVerified: user.emailVerified ? user.emailVerified.toISOString() : null,
-        createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString(),
-      };
-
-      const accountsOut: ExportAccountIdentity[] = accounts.map((a) => ({
-        id: a.id,
-        type: a.type,
-        provider: a.provider,
-        providerAccountId: a.providerAccountId,
-        scope: a.scope ?? null,
-        expiresAt: a.expires_at ?? null,
-      }));
-
-      const settingsOut: ExportSettings | null = settings
-        ? {
-            teslaLinked: settings.teslaLinked,
-            teslaVehicleName: settings.teslaVehicleName,
-            virtualKeyPaired: settings.virtualKeyPaired,
-            keyPairingDeferredAt: settings.keyPairingDeferredAt
-              ? settings.keyPairingDeferredAt.toISOString()
-              : null,
-            keyPairingReminderCount: settings.keyPairingReminderCount,
-            notifyDriveStarted: settings.notifyDriveStarted,
-            notifyDriveCompleted: settings.notifyDriveCompleted,
-            notifyChargingComplete: settings.notifyChargingComplete,
-            notifyViewerJoined: settings.notifyViewerJoined,
-            createdAt: settings.createdAt.toISOString(),
-            updatedAt: settings.updatedAt.toISOString(),
-          }
-        : null;
-
-      const vehiclesOut: ExportVehicle[] = vehicles.map((v) => {
-        const gps = readVehicleGPS(v);
-        const navRoute = readNavRouteCoordinates(v);
-        return {
-          id: v.id,
-          teslaVehicleId: v.teslaVehicleId,
-          vin: v.vin,
-          name: v.name,
-          model: v.model,
-          year: v.year,
-          color: v.color,
-          licensePlate: v.licensePlate,
-          chargeLevel: v.chargeLevel,
-          estimatedRange: v.estimatedRange,
-          chargeState: v.chargeState,
-          timeToFull: v.timeToFull,
-          status: v.status,
-          speed: v.speed,
-          gearPosition: v.gearPosition,
-          heading: v.heading,
-          locationName: v.locationName,
-          locationAddress: v.locationAddress,
-          latitude: gps.latitude,
-          longitude: gps.longitude,
-          interiorTemp: v.interiorTemp,
-          exteriorTemp: v.exteriorTemp,
-          odometerMiles: v.odometerMiles,
-          fsdMilesSinceReset: v.fsdMilesSinceReset,
-          virtualKeyPaired: v.virtualKeyPaired,
-          setupStatus: v.setupStatus,
-          destinationName: v.destinationName,
-          destinationAddress: v.destinationAddress,
-          destinationLatitude: gps.destinationLatitude,
-          destinationLongitude: gps.destinationLongitude,
-          originLatitude: gps.originLatitude,
-          originLongitude: gps.originLongitude,
-          etaMinutes: v.etaMinutes,
-          tripDistanceMiles: v.tripDistanceMiles,
-          tripDistanceRemaining: v.tripDistanceRemaining,
-          navRouteCoordinates: navRoute,
-          lastUpdated: v.lastUpdated.toISOString(),
-          createdAt: v.createdAt.toISOString(),
-          updatedAt: v.updatedAt.toISOString(),
-          stops: v.stops.map((s) => ({
-            id: s.id,
-            name: s.name,
-            address: s.address,
-            type: s.type,
-          })),
-        };
-      });
-
-      const drivesOut: ExportDrive[] = drives.map((d) => ({
-        id: d.id,
-        vehicleId: d.vehicleId,
-        date: d.date,
-        startTime: d.startTime,
-        endTime: d.endTime,
-        startLocation: d.startLocation,
-        startAddress: d.startAddress,
-        endLocation: d.endLocation,
-        endAddress: d.endAddress,
-        distanceMiles: d.distanceMiles,
-        durationMinutes: d.durationMinutes,
-        avgSpeedMph: d.avgSpeedMph,
-        maxSpeedMph: d.maxSpeedMph,
-        energyUsedKwh: d.energyUsedKwh,
-        startChargeLevel: d.startChargeLevel,
-        endChargeLevel: d.endChargeLevel,
-        fsdMiles: d.fsdMiles,
-        fsdPercentage: d.fsdPercentage,
-        interventions: d.interventions,
-        routePoints: readRoutePoints(d),
-        createdAt: d.createdAt.toISOString(),
-      }));
-
-      const invitesOut: ExportInvite[] = invites.map((i) => ({
-        id: i.id,
-        vehicleId: i.vehicleId,
-        senderId: i.senderId,
-        label: i.label,
-        email: i.email,
-        status: i.status,
-        permission: i.permission,
-        sentDate: i.sentDate.toISOString(),
-        acceptedDate: i.acceptedDate ? i.acceptedDate.toISOString() : null,
-        lastSeen: i.lastSeen ? i.lastSeen.toISOString() : null,
-        isOnline: i.isOnline,
-        createdAt: i.createdAt.toISOString(),
-        updatedAt: i.updatedAt.toISOString(),
-        role: i.senderId === userId ? 'sender' : 'recipient',
-      }));
-
-      const auditLogOut: ExportAuditLog[] = [
-        ...auditLog.map((row) => ({
-          id: row.id,
-          userId: row.userId,
-          timestamp: row.timestamp.toISOString(),
-          action: row.action,
-          targetType: row.targetType,
-          targetId: row.targetId,
-          initiator: row.initiator,
-          metadata: row.metadata,
-          createdAt: row.createdAt.toISOString(),
-        })),
-        exportedAuditRow,
-      ];
-
       const out: ExportArchive = {
         exportVersion: 1,
-        exportedAt: new Date().toISOString(),
+        // Use the audit row's timestamp so `exportedAt` and the
+        // canonical audit moment are guaranteed identical (no
+        // millisecond drift between two `new Date()` calls).
+        exportedAt: auditEntry.timestamp.toISOString(),
         auditLogId: auditEntry.id,
-        profile,
-        accounts: accountsOut,
-        settings: settingsOut,
-        vehicles: vehiclesOut,
-        drives: drivesOut,
-        invites: invitesOut,
-        auditLog: auditLogOut,
+        profile: mapProfileToExport(user),
+        accounts: accounts.map(mapAccountToExport),
+        settings: mapSettingsToExport(settings),
+        vehicles: vehicles.map(mapVehicleToExport),
+        drives: drives.map(mapDriveToExport),
+        invites: invites.map((i) => mapInviteToExport(i, userId)),
+        auditLog: [...auditLog.map(mapAuditLogToExport), exportedAuditRow],
       };
       return out;
     });
@@ -496,7 +173,7 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json(archive, { status: 200 });
   } catch (err) {
-    // CG-DC-2: error.message must not leak P1 values. Correlate via
+    // CG-DC-2: error.message must not leak P1 values; correlate via
     // structured logs only.
     console.error('GET /api/users/me/export transaction failed', {
       userId,
