@@ -168,7 +168,12 @@ describe('DELETE /api/users/me', () => {
     });
 
     it('accepts a session at the edge of the window (5 min minus 1 s)', async () => {
-      const edge = Math.floor(Date.now() / 1000) - (5 * 60 - 1);
+      // Freeze Date.now() so the handler's internal `now` matches the
+      // test's `edge` derivation exactly — defends against CI-load flake
+      // when the two calls straddle a second boundary.
+      const FROZEN_MS = 1_730_000_000_000;
+      vi.spyOn(Date, 'now').mockReturnValue(FROZEN_MS);
+      const edge = Math.floor(FROZEN_MS / 1000) - (5 * 60 - 1);
       mockAuth.mockResolvedValue({
         user: { id: USER_ID, authTime: edge },
       });

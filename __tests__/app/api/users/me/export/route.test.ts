@@ -421,6 +421,41 @@ describe('GET /api/users/me/export', () => {
       });
       expect(mockTransaction).not.toHaveBeenCalled();
     });
+
+    it('accepts a session at the edge of the window (5 min minus 1 s)', async () => {
+      // Freeze Date.now() so the handler's internal `now` matches the
+      // test's `edge` derivation exactly — defends against CI-load flake.
+      const FROZEN_MS = 1_730_000_000_000;
+      vi.spyOn(Date, 'now').mockReturnValue(FROZEN_MS);
+      const edge = Math.floor(FROZEN_MS / 1000) - (5 * 60 - 1);
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: edge },
+      });
+
+      const res = await GET();
+
+      expect(res.status).toBe(200);
+      expect(mockTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('honors REAUTH_MAX_AGE_SEC override', async () => {
+      const prev = process.env.REAUTH_MAX_AGE_SEC;
+      process.env.REAUTH_MAX_AGE_SEC = '60';
+      try {
+        // 90 s ago — passes 5 min default but fails the 60 s override.
+        mockAuth.mockResolvedValue({
+          user: { id: USER_ID, authTime: Math.floor(Date.now() / 1000) - 90 },
+        });
+        const res = await GET();
+        expect(res.status).toBe(401);
+        expect(await res.json()).toMatchObject({
+          error: { subCode: 'reauth_required' },
+        });
+      } finally {
+        if (prev === undefined) delete process.env.REAUTH_MAX_AGE_SEC;
+        else process.env.REAUTH_MAX_AGE_SEC = prev;
+      }
+    });
   });
 
   describe('round-trip — seeded user with full ownership graph', () => {
