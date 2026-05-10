@@ -78,6 +78,15 @@ import { DELETE } from '@/app/api/users/me/route';
 const USER_ID = 'cuid_user_1234567890abcdef';
 const AUDIT_LOG_ID = 'cuid_audit_abcdef1234567890';
 
+/**
+ * MYR-76 re-auth gate: every test that expects the handler to reach the
+ * transaction must seed a recent `authTime`. Tests that exercise the gate
+ * itself override this to a stale value or omit it entirely.
+ */
+function recentAuthTime(): number {
+  return Math.floor(Date.now() / 1000) - 30; // 30 s ago — well under 5 min
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -124,9 +133,82 @@ describe('DELETE /api/users/me', () => {
     });
   });
 
+  describe('MYR-76 recent-login re-auth gate', () => {
+    it('returns 401 auth_failed{subCode: reauth_required} when authTime is missing', async () => {
+      // Legacy session (predates the JWT claim rollout) — must reauth.
+      mockAuth.mockResolvedValue({ user: { id: USER_ID } });
+
+      const res = await DELETE();
+
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({
+        error: {
+          code: 'auth_failed',
+          message: 'recent re-authentication required',
+          subCode: 'reauth_required',
+        },
+      });
+      expect(mockTransaction).not.toHaveBeenCalled();
+    });
+
+    it('returns 401 reauth_required when authTime is older than the 5-min window', async () => {
+      // 10 minutes ago — outside the default 300 s window.
+      const stale = Math.floor(Date.now() / 1000) - 10 * 60;
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: stale },
+      });
+
+      const res = await DELETE();
+
+      expect(res.status).toBe(401);
+      expect(await res.json()).toMatchObject({
+        error: { code: 'auth_failed', subCode: 'reauth_required' },
+      });
+      expect(mockTransaction).not.toHaveBeenCalled();
+    });
+
+    it('accepts a session at the edge of the window (5 min minus 1 s)', async () => {
+      // Freeze Date.now() so the handler's internal `now` matches the
+      // test's `edge` derivation exactly — defends against CI-load flake
+      // when the two calls straddle a second boundary.
+      const FROZEN_MS = 1_730_000_000_000;
+      vi.spyOn(Date, 'now').mockReturnValue(FROZEN_MS);
+      const edge = Math.floor(FROZEN_MS / 1000) - (5 * 60 - 1);
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: edge },
+      });
+
+      const res = await DELETE();
+
+      expect(res.status).toBe(200);
+      expect(mockTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('honors REAUTH_MAX_AGE_SEC override', async () => {
+      const prev = process.env.REAUTH_MAX_AGE_SEC;
+      process.env.REAUTH_MAX_AGE_SEC = '60';
+      try {
+        // 90 s ago — would pass the 5 min default but fails the 60 s override.
+        mockAuth.mockResolvedValue({
+          user: { id: USER_ID, authTime: Math.floor(Date.now() / 1000) - 90 },
+        });
+        const res = await DELETE();
+        expect(res.status).toBe(401);
+        expect(await res.json()).toMatchObject({
+          error: { subCode: 'reauth_required' },
+        });
+      } finally {
+        if (prev === undefined) delete process.env.REAUTH_MAX_AGE_SEC;
+        else process.env.REAUTH_MAX_AGE_SEC = prev;
+      }
+    });
+  });
+
   describe('happy path — seeded user with vehicles + drives + invites', () => {
     beforeEach(() => {
-      mockAuth.mockResolvedValue({ user: { id: USER_ID } });
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: recentAuthTime() },
+      });
     });
 
     it('returns 200 with {deleted: true, auditLogId} on success', async () => {
@@ -268,7 +350,9 @@ describe('DELETE /api/users/me', () => {
 
   describe('rollback — audit insert failure aborts the transaction', () => {
     beforeEach(() => {
-      mockAuth.mockResolvedValue({ user: { id: USER_ID } });
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: recentAuthTime() },
+      });
     });
 
     it('returns 500 internal_error when auditLog.create throws', async () => {
@@ -327,7 +411,9 @@ describe('DELETE /api/users/me', () => {
   describe('idempotency — second call after success', () => {
     it('first call returns 200; second call (now without a session) returns 401, not 500', async () => {
       // First call succeeds — session resolves to USER_ID.
-      mockAuth.mockResolvedValueOnce({ user: { id: USER_ID } });
+      mockAuth.mockResolvedValueOnce({
+        user: { id: USER_ID, authTime: recentAuthTime() },
+      });
       // Second call: NextAuth no longer resolves a user (the JWT-bound user
       // row is gone, so even if the cookie is replayed, session.user.id
       // returns undefined).
