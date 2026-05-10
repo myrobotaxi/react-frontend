@@ -159,11 +159,22 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           token.id = user.id;
         }
       }
+      // MYR-76 recent-login claim: stamp `authTime` whenever the user
+      // completes an OAuth round-trip. `account` is non-null only on the
+      // sign-in/link callback; subsequent refreshes leave the existing
+      // value intact so the recency window measures from the most recent
+      // fresh authentication, not session activity.
+      if (account) {
+        token.authTime = Math.floor(Date.now() / 1000);
+      }
       return token;
     },
     session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
+      }
+      if (session.user && typeof token.authTime === 'number') {
+        session.user.authTime = token.authTime;
       }
       return session;
     },

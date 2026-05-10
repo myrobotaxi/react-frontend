@@ -26,6 +26,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { errorEnvelope } from '@/lib/api-errors';
 import { prisma } from '@/lib/prisma';
+import { isRecentlyAuthenticated } from '@/lib/reauth';
 
 export async function DELETE(): Promise<NextResponse> {
   const session = await auth();
@@ -34,6 +35,18 @@ export async function DELETE(): Promise<NextResponse> {
   if (!userId) {
     return NextResponse.json(
       errorEnvelope('auth_failed', 'authentication required'),
+      { status: 401 },
+    );
+  }
+
+  // MYR-76 recent-login re-auth gate (rest-api.md §7.6).
+  if (!isRecentlyAuthenticated(session.user.authTime)) {
+    return NextResponse.json(
+      errorEnvelope(
+        'auth_failed',
+        'recent re-authentication required',
+        'reauth_required',
+      ),
       { status: 401 },
     );
   }

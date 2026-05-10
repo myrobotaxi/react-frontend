@@ -116,6 +116,11 @@ const USER_ID = 'cuid_user_export_aaaaaaaaaaaaaa';
 const OTHER_USER_ID = 'cuid_user_other_bbbbbbbbbbbbbb';
 const NEW_AUDIT_ID = 'cuid_audit_export_cccccccccccc';
 
+/** MYR-76 re-auth gate: 30 s ago — well under the default 5 min window. */
+function recentAuthTime(): number {
+  return Math.floor(Date.now() / 1000) - 30;
+}
+
 const NOW = new Date('2026-05-08T12:00:00.000Z');
 
 function seedUser() {
@@ -372,7 +377,9 @@ describe('GET /api/users/me/export', () => {
     });
 
     it('returns 401 auth_failed when authenticated but user row is missing', async () => {
-      mockAuth.mockResolvedValue({ user: { id: USER_ID } });
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: recentAuthTime() },
+      });
       mockUserFindUnique.mockResolvedValue(null);
 
       const res = await GET();
@@ -383,9 +390,44 @@ describe('GET /api/users/me/export', () => {
     });
   });
 
+  describe('MYR-76 recent-login re-auth gate', () => {
+    it('returns 401 auth_failed{subCode: reauth_required} when authTime is missing', async () => {
+      mockAuth.mockResolvedValue({ user: { id: USER_ID } });
+
+      const res = await GET();
+
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({
+        error: {
+          code: 'auth_failed',
+          message: 'recent re-authentication required',
+          subCode: 'reauth_required',
+        },
+      });
+      expect(mockTransaction).not.toHaveBeenCalled();
+    });
+
+    it('returns 401 reauth_required when authTime is older than the 5-min window', async () => {
+      const stale = Math.floor(Date.now() / 1000) - 10 * 60;
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: stale },
+      });
+
+      const res = await GET();
+
+      expect(res.status).toBe(401);
+      expect(await res.json()).toMatchObject({
+        error: { code: 'auth_failed', subCode: 'reauth_required' },
+      });
+      expect(mockTransaction).not.toHaveBeenCalled();
+    });
+  });
+
   describe('round-trip — seeded user with full ownership graph', () => {
     beforeEach(() => {
-      mockAuth.mockResolvedValue({ user: { id: USER_ID } });
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: recentAuthTime() },
+      });
     });
 
     it('returns 200 with every owned row in the archive', async () => {
@@ -534,7 +576,9 @@ describe('GET /api/users/me/export', () => {
 
   describe('security regression — OAuth token columns must NEVER appear', () => {
     beforeEach(() => {
-      mockAuth.mockResolvedValue({ user: { id: USER_ID } });
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: recentAuthTime() },
+      });
     });
 
     it('account entries do not carry plaintext OAuth tokens', async () => {
@@ -577,7 +621,9 @@ describe('GET /api/users/me/export', () => {
 
   describe('encryption boundary — *Enc columns are decrypted, not echoed', () => {
     beforeEach(() => {
-      mockAuth.mockResolvedValue({ user: { id: USER_ID } });
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: recentAuthTime() },
+      });
     });
 
     it('vehicle output exposes decrypted GPS, never the raw *Enc strings', async () => {
@@ -612,7 +658,9 @@ describe('GET /api/users/me/export', () => {
 
   describe('failure handling', () => {
     beforeEach(() => {
-      mockAuth.mockResolvedValue({ user: { id: USER_ID } });
+      mockAuth.mockResolvedValue({
+        user: { id: USER_ID, authTime: recentAuthTime() },
+      });
     });
 
     it('returns 500 internal_error when a query throws', async () => {

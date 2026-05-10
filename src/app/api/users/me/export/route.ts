@@ -33,6 +33,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { errorEnvelope } from '@/lib/api-errors';
 import { prisma } from '@/lib/prisma';
+import { isRecentlyAuthenticated } from '@/lib/reauth';
 
 import {
   mapAccountToExport,
@@ -52,6 +53,20 @@ export async function GET(): Promise<NextResponse> {
   if (!userId) {
     return NextResponse.json(
       errorEnvelope('auth_failed', 'authentication required'),
+      { status: 401 },
+    );
+  }
+
+  // MYR-76 recent-login re-auth gate (rest-api.md §7.7). Symmetric with
+  // §7.6 DELETE — both endpoints surface the full ownership graph; a
+  // stolen bearer token must not dump it without a fresh sign-in.
+  if (!isRecentlyAuthenticated(session.user.authTime)) {
+    return NextResponse.json(
+      errorEnvelope(
+        'auth_failed',
+        'recent re-authentication required',
+        'reauth_required',
+      ),
       { status: 401 },
     );
   }
