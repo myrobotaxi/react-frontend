@@ -22,18 +22,30 @@ jobs:
       github.event_name == 'pull_request' ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
     steps:
+      # Generate a short-lived (~1h) installation token from the
+      # `myrobotaxi-pr-review` GitHub App, owned by the org. App-issued
+      # tokens are accepted by branch protection's "required approving
+      # reviews" rule and the App identity does not consume a billable
+      # seat (replaces the previous tnando-gh-bot collaborator pattern).
+      - name: Generate App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.REVIEWER_APP_ID }}
+          private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_PAT }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Run Claude Code review
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ secrets.GH_PAT }}
+          github_token: ${{ steps.app-token.outputs.token }}
           use_sticky_comment: true
           track_progress: true
           show_full_output: true
@@ -127,39 +139,44 @@ jobs:
       - name: Submit PR review
         if: github.event_name == 'pull_request'
         shell: bash
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
 
           # Read Claude's review comment (the one containing a Verdict)
-          COMMENT=$(GH_TOKEN=${{ secrets.GH_PAT }} gh pr view "$PR_NUMBER" \
+          COMMENT=$(gh pr view "$PR_NUMBER" \
             --json comments \
             --jq '[.comments[] | select(.body | test("Verdict"))] | last | .body')
 
           echo "Verdict line:"
           echo "$COMMENT" | grep -i "Verdict" || echo "(no verdict found)"
 
-          # BOT_PAT belongs to tnando-gh-bot (a separate collaborator with write access)
-          # so it can approve/request-changes on PRs authored by tnando.
+          # The App-issued installation token authors reviews as
+          # `myrobotaxi-pr-review[bot]`. App-bot reviews satisfy the
+          # "required approving reviews" branch-protection rule without
+          # consuming a paid org seat (replaces the prior tnando-gh-bot
+          # collaborator + BOT_PAT pattern).
           if echo "$COMMENT" | grep -qi 'Verdict' && echo "$COMMENT" | grep -qi '\bAPPROVE\b'; then
             echo "Submitting approval"
             # Dismiss any stale REQUEST_CHANGES review from the bot before approving
-            REVIEW_ID=$(GH_TOKEN=${{ secrets.BOT_PAT }} gh api \
+            REVIEW_ID=$(gh api \
               "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" \
-              --jq '[.[] | select(.user.login == "tnando-gh-bot" and .state == "CHANGES_REQUESTED")] | last | .id' 2>/dev/null)
+              --jq '[.[] | select(.user.login == "myrobotaxi-pr-review[bot]" and .state == "CHANGES_REQUESTED")] | last | .id' 2>/dev/null)
             if [ -n "$REVIEW_ID" ] && [ "$REVIEW_ID" != "null" ]; then
               echo "Dismissing stale REQUEST_CHANGES review $REVIEW_ID"
-              GH_TOKEN=${{ secrets.BOT_PAT }} gh api \
+              gh api \
                 "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews/$REVIEW_ID/dismissals" \
                 -f message="Issues resolved — approving." || true
             fi
-            GH_TOKEN=${{ secrets.BOT_PAT }} gh pr review "$PR_NUMBER" --approve \
+            gh pr review "$PR_NUMBER" --approve \
               -b "Automated approval based on Claude Code review."
           elif echo "$COMMENT" | grep -qi 'Verdict' && echo "$COMMENT" | grep -qi '\bREQUEST_CHANGES\b'; then
             echo "Submitting request for changes"
-            GH_TOKEN=${{ secrets.BOT_PAT }} gh pr review "$PR_NUMBER" --request-changes \
+            gh pr review "$PR_NUMBER" --request-changes \
               -b "Changes requested based on Claude Code review."
           else
             echo "Submitting comment review"
-            GH_TOKEN=${{ secrets.BOT_PAT }} gh pr review "$PR_NUMBER" --comment \
+            gh pr review "$PR_NUMBER" --comment \
               -b "Review complete — see Claude's comment for details."
           fi
