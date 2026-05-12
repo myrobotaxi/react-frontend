@@ -68,7 +68,7 @@ Implement these models:
 - Do NOT modify frontend pages or components — that's the Frontend Agent's job
 
 ## Project Context
-- **Repo:** `/Users/thomasnandola/github/claude-apps/my-robo-taxi`
+- **Repo:** `/Users/thomasnandola/github/claude-apps/react-frontend`
 - **Database:** PostgreSQL via Supabase
 - **MQTT Broker:** HiveMQ Cloud (free tier)
 - **Deployment target:** Vercel (consider serverless limitations for WebSocket/MQTT)

@@ -30,7 +30,7 @@
  *
  * Rollout phases mirror MYR-62 / MYR-63:
  *   1. Dual-write (this PR — TS Phase 1)
- *   2. Phase 2 — Go telemetry pipeline (separate, my-robo-taxi-telemetry)
+ *   2. Phase 2 — Go telemetry pipeline (separate, telemetry)
  *   3. Backfill — separate post-rollout issue
  *   4. Read-flip — separate post-rollout issue
  *   5. Drop plaintext columns — separate post-rollout issue
