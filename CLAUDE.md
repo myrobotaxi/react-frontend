@@ -153,16 +153,16 @@ For behavioral changes (redirects, transitions, multi-step flows), also include 
 Since this repo is private, relative paths and `raw.githubusercontent.com` URLs do NOT work in PR descriptions. Use full blob URLs with `?raw=true`:
 
 ```markdown
-![Sign In](https://github.com/myrobotaxi/my-robo-taxi/blob/<branch>/screenshots/01-signin.png?raw=true)
+![Sign In](https://github.com/myrobotaxi/react-frontend/blob/<branch>/screenshots/01-signin.png?raw=true)
 ```
 
 For video demos, use the same pattern (GitHub renders `.mp4` inline):
 
 ```markdown
-![Protected redirect](https://github.com/myrobotaxi/my-robo-taxi/blob/<branch>/demos/01-protected-redirect.gif?raw=true)
+![Protected redirect](https://github.com/myrobotaxi/react-frontend/blob/<branch>/demos/01-protected-redirect.gif?raw=true)
 ```
 
-The pattern is: `https://github.com/myrobotaxi/my-robo-taxi/blob/<branch>/<path>?raw=true`
+The pattern is: `https://github.com/myrobotaxi/react-frontend/blob/<branch>/<path>?raw=true`
 
 Replace `<branch>` with the PR branch name (e.g., `feature/frontend-ui`).
 

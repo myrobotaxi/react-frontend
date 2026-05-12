@@ -3,10 +3,10 @@
 `cross-impl.json` is a fixed AES-256-GCM ciphertext, key, and plaintext
 triple used by the cryptox unit tests on **both** implementations:
 
-- **TS (this repo, my-robo-taxi):** `__tests__/lib/cryptox/encryptor.test.ts`
+- **TS (this repo, react-frontend):** `__tests__/lib/cryptox/encryptor.test.ts`
   loads it and asserts `decryptString(ciphertext_b64)` round-trips to
   `plaintext` under `key_b64`.
-- **Go (my-robo-taxi-telemetry, Phase 2):**
+- **Go (telemetry, Phase 2):**
   `internal/cryptox/testdata/cross-impl.json` will hold an
   identical-content copy with the same SHA256, exercising the same
   decrypt assertion.

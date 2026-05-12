@@ -379,7 +379,7 @@ Aim to commit every **15-30 minutes of active work**, or whenever a logical unit
 
 ## Project Context
 
-- **Repo:** `/Users/thomasnandola/github/claude-apps/my-robo-taxi`
+- **Repo:** `/Users/thomasnandola/github/claude-apps/react-frontend`
 - **Source:** `src/` directory (Next.js app)
 - **Mocks:** `ui-mocks/` directory (Vite + React reference implementation)
 - **Architecture:** `docs/design/frontend-architecture.md`

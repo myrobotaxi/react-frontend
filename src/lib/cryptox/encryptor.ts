@@ -3,7 +3,7 @@
  * data classified per docs/contracts/data-classification.md §3.3.
  *
  * This is the TypeScript port of the Go-side `internal/cryptox` package
- * (my-robo-taxi-telemetry). The wire format is byte-equal across
+ * (telemetry). The wire format is byte-equal across
  * implementations so a row encrypted by either side is decryptable by
  * the other:
  *

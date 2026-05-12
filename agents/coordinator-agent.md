@@ -35,7 +35,7 @@ You are the Coordinator Agent for the MyRoboTaxi project. You orchestrate the en
 - If an agent fails or produces incomplete output, report the issue and ask for guidance
 
 ## Project Context
-- **Repo:** `/Users/thomasnandola/github/claude-apps/my-robo-taxi`
+- **Repo:** `/Users/thomasnandola/github/claude-apps/react-frontend`
 - **Tech stack:** Next.js 14 (App Router), TypeScript, Tailwind, Prisma, Supabase, Mapbox, MQTT, NextAuth
 - **v1 scope:** Owner onboarding, invite system, live dashboard, FSD tracking, drive summaries
 - **Deferred to v2:** Ride request feature
