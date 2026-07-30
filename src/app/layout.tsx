@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Roboto } from 'next/font/google';
 
 import { AuthProvider } from '@/components/layout/AuthProvider';
 import './globals.css';
@@ -8,6 +8,17 @@ const inter = Inter({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-inter',
+  display: 'swap',
+});
+
+/**
+ * The brand wordmark's typeface. The design system sets the lockup in Roboto
+ * Medium and nothing else on the site uses it, so only weight 500 is loaded.
+ */
+const roboto = Roboto({
+  subsets: ['latin'],
+  weight: ['500'],
+  variable: '--font-roboto',
   display: 'swap',
 });
 
@@ -31,7 +42,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased bg-bg-primary text-text-primary`}>
+      <body
+        className={`${inter.variable} ${roboto.variable} font-sans antialiased bg-bg-primary text-text-primary`}
+      >
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

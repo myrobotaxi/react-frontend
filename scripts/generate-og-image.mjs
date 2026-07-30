@@ -5,6 +5,13 @@
  * name. Messaging apps cache previews and show them to everyone in a thread,
  * so anything baked in here is public.
  *
+ * The lockup is the canonical brand: the two-tone gold facet arrow on a matte
+ * near-black tile, above the single-color uppercase wordmark. It is duplicated
+ * here as plain HTML/CSS rather than imported, because this art-board is
+ * rendered by a bare headless browser with no React and no Tailwind. Keep it in
+ * step with `src/components/ui/Logo.tsx`, whose source of truth is
+ * `ios-app/design/app/components.jsx:9-45`. No hexagons.
+ *
  * Run: node scripts/generate-og-image.mjs
  * Output: public/og/invite-card.png (1200x630)
  */
@@ -18,13 +25,23 @@ const OUT_FILE = resolve(OUT_DIR, 'invite-card.png');
 const WIDTH = 1200;
 const HEIGHT = 630;
 
-const GOLD = '#C9A84C';
 const BG = '#0A0A0A';
+
+/** Brand mark tile, in px. Every other number below is a ratio of it. */
+const TILE = 168;
+const RADIUS = TILE * 0.225;
+const ARROW = TILE * 0.56;
+const GLOW = TILE * 0.92;
 
 const html = `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=block"
+      rel="stylesheet"
+    />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
@@ -34,50 +51,78 @@ const html = `<!doctype html>
         display: flex;
         align-items: center;
         justify-content: center;
-        font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        color: #fff;
+        font-family: 'Roboto', -apple-system, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+        color: #FFFFFF;
         overflow: hidden;
       }
-      .glow {
+      /* Soft gold wash from the top — the sign-in screen's own backdrop
+         (design app/screens.jsx:184), scaled to the card. */
+      .wash {
         position: absolute;
-        width: 900px;
-        height: 900px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(201,168,76,0.13) 0%, rgba(201,168,76,0) 62%);
+        top: 0; left: 0; right: 0;
+        height: 440px;
+        background: radial-gradient(140% 100% at 50% -20%, rgba(201,168,76,0.3) 0%, rgba(0,0,0,0) 65%);
       }
       .card { position: relative; text-align: center; }
-      .mark { margin-bottom: 40px; }
+      .tile {
+        position: relative;
+        width: ${TILE}px;
+        height: ${TILE}px;
+        margin: 0 auto 46px;
+        border-radius: ${RADIUS}px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(155deg, #1b1407 0%, #0d0b06 55%, #090806 100%);
+        box-shadow:
+          0 ${TILE * 0.04}px ${TILE * 0.12}px rgba(0,0,0,0.5),
+          inset 0 0 0 0.5px rgba(255,255,255,0.07);
+      }
+      .tile .rake {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(95% 80% at 32% 2%, rgba(201,168,76,0.16), rgba(201,168,76,0) 60%);
+      }
+      .tile .glow {
+        position: absolute;
+        width: ${GLOW}px;
+        height: ${GLOW}px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(201,168,76,0.28), rgba(201,168,76,0) 62%);
+      }
+      .tile svg { position: relative; display: block; }
       .wordmark {
         font-size: 76px;
-        font-weight: 600;
-        letter-spacing: -0.02em;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        line-height: 1;
+        text-transform: uppercase;
       }
-      .wordmark .accent { color: ${GOLD}; }
       .tagline {
-        margin-top: 26px;
+        margin-top: 34px;
         font-size: 30px;
         font-weight: 400;
         color: #A0A0A0;
         letter-spacing: 0.01em;
       }
-      .rule {
-        margin: 44px auto 0;
-        width: 120px;
-        height: 2px;
-        background: linear-gradient(90deg, rgba(201,168,76,0) 0%, ${GOLD} 50%, rgba(201,168,76,0) 100%);
-      }
     </style>
   </head>
   <body>
-    <div class="glow"></div>
+    <div class="wash"></div>
     <div class="card">
-      <svg class="mark" width="132" height="132" viewBox="0 0 48 48" fill="none">
-        <path d="M24 4L6 16v16l18 12 18-12V16L24 4z" stroke="${GOLD}" stroke-width="1.25" fill="none" />
-        <circle cx="24" cy="24" r="3" fill="${GOLD}" />
-      </svg>
-      <div class="wordmark">My<span class="accent">Robo</span>Taxi</div>
+      <div class="tile">
+        <div class="rake"></div>
+        <div class="glow"></div>
+        <svg width="${ARROW}" height="${ARROW}" viewBox="0 0 100 100">
+          <g transform="rotate(-22 50 50)">
+            <polygon points="50,12 50,64 18,85" fill="#E4D08A" />
+            <polygon points="50,12 82,85 50,64" fill="#9C7E2C" />
+          </g>
+        </svg>
+      </div>
+      <div class="wordmark">myrobotaxi</div>
       <div class="tagline">You&rsquo;re invited to ride a Tesla</div>
-      <div class="rule"></div>
     </div>
   </body>
 </html>`;
@@ -92,7 +137,18 @@ async function run() {
     colorScheme: 'dark',
   });
 
-  await page.setContent(html, { waitUntil: 'load' });
+  await page.setContent(html, { waitUntil: 'networkidle' });
+
+  // The wordmark is the whole point of the card, so fail loudly rather than
+  // silently shipping it in a fallback face.
+  const loaded = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return document.fonts.check('500 76px Roboto');
+  });
+  if (!loaded) {
+    throw new Error('Roboto 500 did not load — refusing to render the wordmark in a fallback face');
+  }
+
   await page.screenshot({ path: OUT_FILE, type: 'png' });
   await browser.close();
 
