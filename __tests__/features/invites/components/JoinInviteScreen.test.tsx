@@ -68,6 +68,41 @@ describe('JoinInviteScreen — without a code', () => {
   });
 });
 
+describe('JoinInviteScreen — named by the link (MYR-359)', () => {
+  it('names the sender in the heading, matching the preview card that was tapped', () => {
+    render(<JoinInviteScreen code="RBO246" inviterName="Thomas" />);
+    expect(
+      screen.getByRole('heading', { name: 'Thomas invited you to ride their Tesla' }),
+    ).toBeInTheDocument();
+  });
+
+  it('names them on the codeless landing too', () => {
+    render(<JoinInviteScreen code={null} inviterName="Thomas" />);
+    expect(
+      screen.getByRole('heading', { name: 'Thomas invited you to ride their Tesla' }),
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the generic heading with no name', () => {
+    for (const absent of [null, undefined]) {
+      const { unmount } = render(<JoinInviteScreen code="RBO246" inviterName={absent} />);
+      expect(
+        screen.getByRole('heading', { name: /invited to ride a Tesla on MyRoboTaxi/i }),
+      ).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('shows the code and the TestFlight route exactly as before — only the heading changes', () => {
+    render(<JoinInviteScreen code="RBO246" inviterName="Thomas" />);
+    expect(screen.getByTestId('invite-code')).toHaveTextContent('RBO246');
+    expect(screen.getByRole('link', { name: /get the app on testflight/i })).toHaveAttribute(
+      'href',
+      TESTFLIGHT_JOIN_URL,
+    );
+  });
+});
+
 describe('JoinInviteScreen — standalone surface', () => {
   it('renders no internal navigation links', () => {
     const { container } = render(<JoinInviteScreen code="RBO246" />);

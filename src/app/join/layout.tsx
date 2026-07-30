@@ -1,47 +1,14 @@
-import type { Metadata } from 'next';
-
-import { INVITE_OG_IMAGE_PATH, SITE_ORIGIN } from '@/lib/constants';
-
-const TITLE = "You're invited to ride a Tesla";
-const DESCRIPTION = 'MyRoboTaxi — tap to join and request rides.';
+import { buildJoinMetadata } from './join-metadata';
 
 /**
- * Link-preview metadata for every /join route.
+ * Base link-preview metadata for the /join surface.
  *
- * Declared on the layout, not the page, so the code-carrying route and the
- * codeless landing emit byte-identical tags. Messaging apps scrape these before
- * the recipient taps, and the preview is visible to anyone the link is
- * forwarded to — so it must never contain the invite code, the sender's name,
- * or the recipient's. `og:url` is deliberately omitted for the same reason.
- *
- * `noindex` keeps code-bearing URLs out of search engines.
+ * The generic form, which is what any /join route that does not describe itself
+ * emits. Both pages override it through `generateMetadata` when the link carries
+ * a `?from=` name (MYR-359) — search params are not visible to a layout, and the
+ * card has to be right before the recipient taps anything.
  */
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_ORIGIN),
-  title: TITLE,
-  description: DESCRIPTION,
-  robots: { index: false, follow: false },
-  openGraph: {
-    type: 'website',
-    siteName: 'MyRoboTaxi',
-    title: TITLE,
-    description: DESCRIPTION,
-    images: [
-      {
-        url: INVITE_OG_IMAGE_PATH,
-        width: 1200,
-        height: 630,
-        alt: 'MyRoboTaxi',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: TITLE,
-    description: DESCRIPTION,
-    images: [INVITE_OG_IMAGE_PATH],
-  },
-};
+export const metadata = buildJoinMetadata(null);
 
 /**
  * Standalone layout for the public invite surface. Renders children only —

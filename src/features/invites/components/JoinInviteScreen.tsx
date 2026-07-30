@@ -11,6 +11,13 @@ export interface JoinInviteScreenProps {
    * unparseable one. `null` renders generic copy with no code section.
    */
   code: string | null;
+  /**
+   * Sanitized sender first name from `?from=`, or `null` (MYR-359). Sanitizing
+   * is the caller's job (`sanitizeInviterName`), on the page, before this ever
+   * renders — a component that scrubbed its own props would put the guard one
+   * layer below the one place the raw value is known.
+   */
+  inviterName?: string | null;
 }
 
 /**
@@ -22,15 +29,24 @@ export interface JoinInviteScreenProps {
  * (retired) site, and no network calls. The code is rendered straight from the
  * URL — this page never validates or redeems it.
  */
-export function JoinInviteScreen({ code }: JoinInviteScreenProps) {
+export function JoinInviteScreen({ code, inviterName = null }: JoinInviteScreenProps) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6 py-12">
       <div className="w-full max-w-sm animate-fade-in text-center">
         {/* Glowing mark, per the design system's first-run lockup. */}
         <Logo size="lg" glow />
 
+        {/*
+          The heading says the same thing as the link-preview card the recipient
+          already tapped (MYR-359) — naming the sender when the link named them,
+          generic when it did not. A card that says "Thomas invited you" opening
+          a page that says "You're invited" reads as a different page than the
+          one they tapped.
+        */}
         <h2 className="mt-2 text-xl font-semibold leading-8 text-text-primary">
-          You&rsquo;re invited to ride a Tesla on MyRoboTaxi
+          {inviterName
+            ? `${inviterName} invited you to ride their Tesla`
+            : 'You’re invited to ride a Tesla on MyRoboTaxi'}
         </h2>
         <p className="mt-3 text-sm leading-6 text-text-secondary">
           {code

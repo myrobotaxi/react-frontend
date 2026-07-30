@@ -16,6 +16,13 @@ const shots = [
   { path: '/join/RBO246', name: '10-join-with-code' },
   { path: '/join', name: '11-join-landing-no-code' },
   { path: '/join/not-a-code', name: '12-join-invalid-code' },
+  // MYR-359 — the same page named by the link, and the guard that a name which
+  // is not plainly a name falls back to the generic heading.
+  { path: '/join/RBO246?from=Thomas', name: '14-join-personalized' },
+  {
+    path: `/join/RBO246?from=${encodeURIComponent('<script>alert(1)</script>')}`,
+    name: '15-join-junk-from-falls-back',
+  },
 ];
 
 async function run() {
