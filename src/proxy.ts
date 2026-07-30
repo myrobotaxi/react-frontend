@@ -5,6 +5,11 @@ import {
   BETA_COOKIE_NAME,
   BETA_COOKIE_VALUE,
 } from '@/lib/beta-gate';
+import {
+  isLockdownExempt,
+  LOCKDOWN_REDIRECT_PATH,
+  LOCKDOWN_REDIRECT_STATUS,
+} from '@/lib/lockdown';
 
 const AUTH_PAGES = ['/signin', '/signup'];
 const PUBLIC_PATHS = ['/signin', '/signup', '/beta', '/join', '/api/auth', '/.well-known'];
@@ -19,6 +24,23 @@ function isAuthPage(pathname: string): boolean {
 
 export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
+
+  // ─── LOCKDOWN (see lib/lockdown.ts; revert that commit to undo) ───────────
+  // The web app is retired. Everything except the invite surface and the
+  // endpoints outside systems are registered against goes to /join.
+  if (!isLockdownExempt(pathname)) {
+    // Same idiom as the gates below. Note that auth() rewrites `req.url` to
+    // AUTH_URL, so the Location is always the apex — correct in production,
+    // but it means localhost and preview deploys bounce to production too.
+    // (A relative Location would avoid that; Next's proxy runtime rejects one.)
+    // The original query string is dropped: nothing from a retired route
+    // should ride along to the invite page.
+    return Response.redirect(
+      new URL(LOCKDOWN_REDIRECT_PATH, req.url),
+      LOCKDOWN_REDIRECT_STATUS,
+    );
+  }
+  // ─── end lockdown ─────────────────────────────────────────────────────────
 
   // Beta gate — redirect to /beta if gate is enabled and user has no access.
   // Users with an active session always bypass the gate.
