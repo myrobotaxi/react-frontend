@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 
 import {
+  isLockdownEnabled,
   isLockdownExempt,
   LOCKDOWN_EXEMPT_PREFIXES,
   LOCKDOWN_REDIRECT_PATH,
@@ -68,6 +69,32 @@ describe('isLockdownExempt — prefix boundaries', () => {
 
   it('treats the root as locked down', () => {
     expect(isLockdownExempt('/')).toBe(false);
+  });
+});
+
+describe('isLockdownEnabled', () => {
+  const original = process.env.LOCKDOWN_DISABLED;
+
+  afterEach(() => {
+    if (original === undefined) delete process.env.LOCKDOWN_DISABLED;
+    else process.env.LOCKDOWN_DISABLED = original;
+  });
+
+  it('is on when nothing is configured', () => {
+    delete process.env.LOCKDOWN_DISABLED;
+    expect(isLockdownEnabled()).toBe(true);
+  });
+
+  it('is off only for the exact opt-out value', () => {
+    process.env.LOCKDOWN_DISABLED = '1';
+    expect(isLockdownEnabled()).toBe(false);
+  });
+
+  it('stays on for any other value, so a typo cannot open the site', () => {
+    for (const value of ['0', 'true', 'yes', '', 'disabled']) {
+      process.env.LOCKDOWN_DISABLED = value;
+      expect(isLockdownEnabled()).toBe(true);
+    }
   });
 });
 

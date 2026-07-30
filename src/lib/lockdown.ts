@@ -15,6 +15,25 @@
 
 import { JOIN_ROUTE } from './constants';
 
+/**
+ * Whether the lockdown is active. On unless explicitly switched off, so a
+ * missing or misspelled env var leaves the site locked rather than open.
+ *
+ * The only intended consumer of the off switch is the Playwright suite, which
+ * still exercises the retired app's routes end-to-end (see playwright.config).
+ * Production sets nothing.
+ *
+ * NOTE: this file runs in the edge proxy, where Next inlines `process.env.*` at
+ * BUILD time. Verified locally: the switch takes effect in `next dev`, and in a
+ * production build only if the variable was set when the build ran. Flipping it
+ * on Vercel therefore needs a redeploy — which a Vercel env-var change triggers
+ * anyway. To undo the lockdown for good, revert its commit rather than relying
+ * on the switch.
+ */
+export function isLockdownEnabled(): boolean {
+  return process.env.LOCKDOWN_DISABLED !== '1';
+}
+
 /** Where every locked-down route lands: the codeless invite landing. */
 export const LOCKDOWN_REDIRECT_PATH = JOIN_ROUTE;
 

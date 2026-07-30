@@ -6,6 +6,7 @@ import {
   BETA_COOKIE_VALUE,
 } from '@/lib/beta-gate';
 import {
+  isLockdownEnabled,
   isLockdownExempt,
   LOCKDOWN_REDIRECT_PATH,
   LOCKDOWN_REDIRECT_STATUS,
@@ -28,7 +29,7 @@ export const proxy = auth((req) => {
   // ─── LOCKDOWN (see lib/lockdown.ts; revert that commit to undo) ───────────
   // The web app is retired. Everything except the invite surface and the
   // endpoints outside systems are registered against goes to /join.
-  if (!isLockdownExempt(pathname)) {
+  if (isLockdownEnabled() && !isLockdownExempt(pathname)) {
     // Same idiom as the gates below. Note that auth() rewrites `req.url` to
     // AUTH_URL, so the Location is always the apex — correct in production,
     // but it means localhost and preview deploys bounce to production too.
