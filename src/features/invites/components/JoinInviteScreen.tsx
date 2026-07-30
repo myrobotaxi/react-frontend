@@ -26,7 +26,8 @@ export function JoinInviteScreen({ code }: JoinInviteScreenProps) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-bg-primary px-6 py-12">
       <div className="w-full max-w-sm animate-fade-in text-center">
-        <Logo size="lg" />
+        {/* Glowing mark, per the design system's first-run lockup. */}
+        <Logo size="lg" glow />
 
         <h2 className="mt-2 text-xl font-semibold leading-8 text-text-primary">
           You&rsquo;re invited to ride a Tesla on MyRoboTaxi

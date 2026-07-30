@@ -73,6 +73,22 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/*
+ * Brand wordmark face — Roboto Medium over the design system's own stack,
+ * mirroring `"Roboto", ` + T.font from the design source
+ * (ios-app/design/app/tokens.js). Used only by the brand lockup.
+ *
+ * Declared as an @utility rather than a `--font-*` theme token on purpose:
+ * `--font-roboto` is set by next/font on <body>, so a theme token would try to
+ * resolve it on :root, where it does not exist — the whole family would then be
+ * invalid at computed-value time and silently fall back to the inherited stack.
+ * A utility resolves on the element it is applied to, which inherits the var.
+ */
+@utility font-brand {
+  font-family: var(--font-roboto), 'Roboto', -apple-system, "SF Pro Text", "SF Pro Display",
+    system-ui, sans-serif;
+}
+
 /* Base styles */
 html, body {
   height: 100%;
