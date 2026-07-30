@@ -27,19 +27,28 @@ export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
 
   // ─── LOCKDOWN (see lib/lockdown.ts; revert that commit to undo) ───────────
-  // The web app is retired. Everything except the invite surface and the
-  // endpoints outside systems are registered against goes to /join.
+  // The web app is retired. Everything except a code-bearing invite link and
+  // the endpoints outside systems are registered against goes to the
+  // coming-soon teaser at `/`.
   if (isLockdownEnabled() && !isLockdownExempt(pathname)) {
     // Same idiom as the gates below. Note that auth() rewrites `req.url` to
     // AUTH_URL, so the Location is always the apex — correct in production,
     // but it means localhost and preview deploys bounce to production too.
     // (A relative Location would avoid that; Next's proxy runtime rejects one.)
     // The original query string is dropped: nothing from a retired route
-    // should ride along to the invite page.
+    // should ride along to the teaser.
     return Response.redirect(
       new URL(LOCKDOWN_REDIRECT_PATH, req.url),
       LOCKDOWN_REDIRECT_STATUS,
     );
+  }
+
+  // The teaser is the redirect target, so it has to be reachable by anyone: the
+  // gates below would bounce an anonymous visitor at `/` to /signin (or /beta),
+  // which the lockdown bounces straight back here — a loop. Only while the
+  // lockdown is on; with it off, `/` is the app's Home screen and stays gated.
+  if (isLockdownEnabled() && pathname === LOCKDOWN_REDIRECT_PATH) {
+    return;
   }
   // ─── end lockdown ─────────────────────────────────────────────────────────
 

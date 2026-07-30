@@ -56,6 +56,9 @@ export const TESTFLIGHT_JOIN_URL = 'https://testflight.apple.com/join/uarZRUbg';
 /** Route prefix for the public invite landing page. */
 export const JOIN_ROUTE = '/join';
 
+/** The apex route — the coming-soon teaser while the web app is retired. */
+export const ROOT_ROUTE = '/';
+
 /** How long an invite code stays valid after the sender creates it. */
 export const INVITE_EXPIRY_DAYS = 7;
 

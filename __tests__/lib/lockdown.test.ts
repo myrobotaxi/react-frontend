@@ -10,7 +10,9 @@ import {
 
 describe('isLockdownExempt — reachable', () => {
   const exempt = [
-    '/join',
+    // The coming-soon teaser, and the redirect target.
+    '/',
+    // An invite link: the code is what makes it one.
     '/join/RBO246',
     '/join/anything',
     '/.well-known/apple-app-site-association',
@@ -33,7 +35,6 @@ describe('isLockdownExempt — reachable', () => {
 
 describe('isLockdownExempt — locked down', () => {
   const locked = [
-    '/',
     '/signin',
     '/signup',
     '/beta',
@@ -55,6 +56,29 @@ describe('isLockdownExempt — locked down', () => {
   });
 });
 
+/**
+ * The invite experience is what a uniquely generated link opens. Someone who
+ * trimmed the code off — or who typed `/join` — is not holding an invitation,
+ * so they get the teaser like everyone else.
+ */
+describe('isLockdownExempt — only a code-bearing invite link', () => {
+  it('keeps /join/{CODE} reachable', () => {
+    expect(isLockdownExempt('/join/RBO246')).toBe(true);
+  });
+
+  it('locks down the codeless /join', () => {
+    expect(isLockdownExempt('/join')).toBe(false);
+  });
+
+  it('locks down /join with an empty code segment', () => {
+    expect(isLockdownExempt('/join/')).toBe(false);
+  });
+
+  it('does not judge whether the code is valid — the URL shape is the signal', () => {
+    expect(isLockdownExempt('/join/not-a-valid-code')).toBe(true);
+  });
+});
+
 describe('isLockdownExempt — prefix boundaries', () => {
   it('does not exempt a path that merely starts with an exempt prefix', () => {
     expect(isLockdownExempt('/joinery')).toBe(false);
@@ -67,8 +91,9 @@ describe('isLockdownExempt — prefix boundaries', () => {
     expect(isLockdownExempt('/x/api/auth/session')).toBe(false);
   });
 
-  it('treats the root as locked down', () => {
-    expect(isLockdownExempt('/')).toBe(false);
+  it('exempts the root exactly, not everything under it', () => {
+    expect(isLockdownExempt('/')).toBe(true);
+    expect(isLockdownExempt('/drives')).toBe(false);
   });
 });
 
@@ -99,8 +124,8 @@ describe('isLockdownEnabled', () => {
 });
 
 describe('lockdown configuration', () => {
-  it('redirects to the codeless invite landing', () => {
-    expect(LOCKDOWN_REDIRECT_PATH).toBe('/join');
+  it('redirects to the coming-soon teaser at the root, not the invite landing', () => {
+    expect(LOCKDOWN_REDIRECT_PATH).toBe('/');
   });
 
   it('uses a temporary redirect so the decision can be reversed', () => {
@@ -113,9 +138,9 @@ describe('lockdown configuration', () => {
 
   it('keeps the exemption list short and reviewable', () => {
     // Every entry here is a live external dependency or a static asset path.
-    // Growing this list silently is how a lockdown stops being one.
+    // Growing this list silently is how a lockdown stops being one. The root
+    // and `/join/{CODE}` are not prefixes; they are asserted above.
     expect(LOCKDOWN_EXEMPT_PREFIXES).toEqual([
-      '/join',
       '/.well-known',
       '/api/auth',
       '/_next',

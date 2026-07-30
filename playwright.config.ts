@@ -61,11 +61,20 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     env: {
-      // The retired-app lockdown (lib/lockdown.ts) redirects every route to
-      // /join in production. Switched off here so this suite keeps covering
-      // the app underneath — which still exists and would be restored if the
-      // lockdown is reverted. The redirect policy itself is unit-tested in
-      // __tests__/lib/lockdown.test.ts.
+      // The retired-app lockdown (lib/lockdown.ts) redirects every route
+      // except a code-bearing invite link to the coming-soon teaser at `/` in
+      // production. Switched off here so this suite keeps covering the app
+      // underneath — which still exists and would be restored if the lockdown
+      // is reverted.
+      //
+      // The lockdown cannot be exercised from this suite: with it on, `/` is
+      // the teaser rather than the app (so every authenticated spec below
+      // would test the wrong page), and its redirects carry a Location of
+      // AUTH_URL — the production apex — so a browser following one would
+      // leave localhost entirely. The policy is unit-tested instead:
+      // __tests__/lib/lockdown.test.ts for the redirect target and the
+      // exemptions, __tests__/features/landing/ and
+      // __tests__/app/coming-soon-metadata.test.ts for the teaser itself.
       LOCKDOWN_DISABLED: '1',
     },
   },

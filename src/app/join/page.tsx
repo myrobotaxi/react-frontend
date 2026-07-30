@@ -29,9 +29,16 @@ export async function generateMetadata({ searchParams }: JoinPageProps): Promise
 /**
  * Codeless invite landing — `/join`.
  *
- * Reached by anyone who trims the code off the link, and the destination the
- * lockdown proxy sends every other route to. Shows branding, the TestFlight
- * link, and the steps; no code section.
+ * RETIRED IN PRODUCTION. It used to be the lockdown's redirect target, which
+ * meant every visitor to the bare domain was handed the invite experience;
+ * invite links are uniquely generated and the page behind one should be too, so
+ * the lockdown now sends `/join` to the coming-soon teaser at `/` along with
+ * every other codeless route (see `lib/lockdown.ts`). Only `/join/{CODE}`
+ * renders an invite.
+ *
+ * The route itself stays: like the rest of the retired app it is gated by
+ * policy, not deleted, so reverting the lockdown restores it — and it is what
+ * the Playwright suite renders with the lockdown switched off.
  */
 export default async function JoinPage({ searchParams }: JoinPageProps) {
   const { from } = await searchParams;
