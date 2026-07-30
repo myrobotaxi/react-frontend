@@ -7,7 +7,7 @@ import {
 } from '@/lib/beta-gate';
 
 const AUTH_PAGES = ['/signin', '/signup'];
-const PUBLIC_PATHS = ['/signin', '/signup', '/beta', '/api/auth', '/.well-known'];
+const PUBLIC_PATHS = ['/signin', '/signup', '/beta', '/join', '/api/auth', '/.well-known'];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname.startsWith(path));
