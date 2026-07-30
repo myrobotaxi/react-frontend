@@ -60,5 +60,13 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    env: {
+      // The retired-app lockdown (lib/lockdown.ts) redirects every route to
+      // /join in production. Switched off here so this suite keeps covering
+      // the app underneath — which still exists and would be restored if the
+      // lockdown is reverted. The redirect policy itself is unit-tested in
+      // __tests__/lib/lockdown.test.ts.
+      LOCKDOWN_DISABLED: '1',
+    },
   },
 });

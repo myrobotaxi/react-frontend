@@ -42,3 +42,22 @@ export const JWT_AUDIENCE = 'telemetry';
 
 /** Tesla virtual key pairing deep link. */
 export const TESLA_KEY_PAIRING_URL = 'https://tesla.com/_ak/myrobotaxi.app';
+
+/** Public origin this app is served from. Used to absolutize link-preview asset URLs. */
+export const SITE_ORIGIN = 'https://myrobotaxi.app';
+
+/**
+ * Public TestFlight join link for the iOS app (Friends & Family external group).
+ * Mirrors `AppDistribution.testFlightPublicJoinURL` in the iOS repo — the two
+ * must quote the same URL. Capped at 100 testers by App Store Connect.
+ */
+export const TESTFLIGHT_JOIN_URL = 'https://testflight.apple.com/join/uarZRUbg';
+
+/** Route prefix for the public invite landing page. */
+export const JOIN_ROUTE = '/join';
+
+/** How long an invite code stays valid after the sender creates it. */
+export const INVITE_EXPIRY_DAYS = 7;
+
+/** Static link-preview card served to messaging-app scrapers (1200x630). */
+export const INVITE_OG_IMAGE_PATH = '/og/invite-card.png';
