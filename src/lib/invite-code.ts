@@ -37,3 +37,23 @@ export function sanitizeInviteCode(raw: string | undefined | null): string | nul
 
   return normalized;
 }
+
+/** Placeholder substituted for a code in any string headed for a log sink. */
+export const REDACTED_INVITE_CODE_PATH = '/join/[code]';
+
+/**
+ * Matches a code-carrying join path anywhere inside a larger string (a full
+ * URL, a transaction name, a breadcrumb message). The trailing boundary check
+ * keeps a longer segment from being partially rewritten.
+ */
+const JOIN_PATH_WITH_CODE = /\/join\/[A-Za-z0-9]{6}(?![A-Za-z0-9])/g;
+
+/**
+ * Replaces `/join/{CODE}` with `/join/[code]` in an arbitrary string.
+ *
+ * Request URLs are the back door through which a bearer-grade code ends up in
+ * a log or an error tracker without anyone deciding to log it.
+ */
+export function redactInviteCodePaths(value: string): string {
+  return value.replace(JOIN_PATH_WITH_CODE, REDACTED_INVITE_CODE_PATH);
+}
