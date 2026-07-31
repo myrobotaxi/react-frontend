@@ -1,8 +1,10 @@
 /**
- * Captures the public invite pages for the PR description.
+ * Captures the public pages — the coming-soon teaser at the apex and the invite
+ * landing — for the PR description.
  *
  * Expects a server on BASE (default http://localhost:3100 — the production
- * build via `npm run start`, so the lockdown proxy is exercised too).
+ * build via `npm run start`, so the lockdown proxy is exercised too: every path
+ * below other than `/` and `/join/{CODE}` would 302 to `/`).
  *
  * Run: node scripts/screenshot-join.mjs
  */
@@ -13,8 +15,13 @@ const BASE = process.env.BASE ?? 'http://localhost:3100';
 const OUT = './screenshots';
 
 const shots = [
+  // The root: what anyone who types the bare domain gets, phone and desktop.
+  { path: '/', name: '20-coming-soon-root' },
+  { path: '/', name: '21-coming-soon-root-desktop', viewport: { width: 1280, height: 800 } },
   { path: '/join/RBO246', name: '10-join-with-code' },
-  { path: '/join', name: '11-join-landing-no-code' },
+  // No `/join` shot: the codeless landing is retired behind a 302 to `/`, and
+  // that redirect carries a Location of AUTH_URL — so capturing it here would
+  // photograph the production site rather than the build under test.
   { path: '/join/not-a-code', name: '12-join-invalid-code' },
   // MYR-359 — the same page named by the link, and the guard that a name which
   // is not plainly a name falls back to the generic heading.
@@ -37,6 +44,9 @@ async function run() {
 
   for (const shot of shots) {
     const page = await context.newPage();
+    // Phone by default; a shot may ask for its own viewport (the teaser is the
+    // whole viewport, so it is worth seeing on a wide one too).
+    if (shot.viewport) await page.setViewportSize(shot.viewport);
     await page.goto(`${BASE}${shot.path}`, { waitUntil: 'networkidle' });
     await page.screenshot({ path: `${OUT}/${shot.name}.png`, fullPage: true });
     await page.close();

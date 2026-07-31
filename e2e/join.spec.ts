@@ -7,8 +7,16 @@ import { test, expect } from '@playwright/test';
  * An invite recipient is anonymous by definition: no session, no beta cookie.
  * These tests run with empty storage to match.
  *
- * The lockdown redirect that fronts these routes in production is off in this
- * suite (see playwright.config.ts) and is covered by unit tests instead.
+ * The lockdown that fronts these routes in production is off in this suite (see
+ * playwright.config.ts) and is covered by unit tests instead. Two of its rules
+ * are worth holding in mind while reading these specs, because they decide
+ * which of them describe a page a real visitor can reach:
+ *
+ *  • `/join/{CODE}` is exempt — everything below that loads a code-bearing URL
+ *    is the production experience.
+ *  • bare `/join` is NOT. It is retired behind a 302 to the coming-soon teaser
+ *    at `/`, so the codeless specs below cover the route as it still exists in
+ *    code, reachable only with the lockdown switched off.
  */
 const ANONYMOUS = { cookies: [], origins: [] };
 
@@ -45,7 +53,15 @@ test.describe('invite landing page', () => {
     );
   });
 
-  test('is reachable without a session or beta cookie', async ({ page }) => {
+  test('a code-bearing link is reachable without a session or beta cookie', async ({ page }) => {
+    const response = await page.goto('/join/RBO246');
+
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/join\/RBO246$/);
+  });
+
+  // The codeless route, which the lockdown retires behind a redirect to `/`.
+  test('the codeless landing still renders with the lockdown off', async ({ page }) => {
     const response = await page.goto('/join');
 
     expect(response?.status()).toBe(200);

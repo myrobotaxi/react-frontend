@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
+
 import { signIn, auth } from '@/auth';
 import { HomeScreen, HomeEmptyScreen, HomeSyncingScreen, getCachedVehicles, getVehicles, syncVehicles, generateWsToken } from '@/features/vehicles';
 import { getSettings, deferKeyPairing, shouldShowPairingModal, PairingModalTrigger } from '@/features/settings';
 import { getDrives } from '@/features/drives';
+import { ComingSoonScreen } from '@/features/landing';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { isLockdownEnabled } from '@/lib/lockdown';
+
+import { buildComingSoonMetadata } from './coming-soon-metadata';
 
 /** Server action to initiate Tesla OAuth account linking. */
 async function handleLinkTesla() {
@@ -17,10 +23,31 @@ async function handleDeferPairing() {
 }
 
 /**
- * Root route — renders the Home screen with map.
- * Auth gate will redirect unauthenticated users to /signin once NextAuth is integrated.
+ * Preview tags for the teaser, server-rendered — the card a shared link shows
+ * is built by scrapers that never run this page's JavaScript.
+ *
+ * With the lockdown off, `/` is the app's Home screen and inherits the layout's
+ * tags exactly as it did before, so the head always describes the body.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  return isLockdownEnabled() ? buildComingSoonMetadata() : {};
+}
+
+/**
+ * Root route.
+ *
+ * While the retired-app lockdown is on — which is every deployed environment
+ * (see `lib/lockdown.ts`) — this is the coming-soon teaser, and the proxy sends
+ * every locked-down route here. The Home screen below is the retired app
+ * underneath: unreachable in production, still rendered when the lockdown is
+ * switched off, which is how the Playwright suite keeps covering it. Reverting
+ * the lockdown commit makes it the root route again.
  */
 export default async function RootPage() {
+  if (isLockdownEnabled()) {
+    return <ComingSoonScreen />;
+  }
+
   const [cachedVehicles, settings, drives, session] = await Promise.all([
     getCachedVehicles(),
     getSettings(),
