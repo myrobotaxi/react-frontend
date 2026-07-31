@@ -17,6 +17,30 @@ export const INVITE_CODE_LENGTH = 6;
 const INVITE_CODE_PATTERN = /^[A-Z0-9]{6}$/;
 
 /**
+ * The same shape as it may appear in a URL, where case is not the sender's to
+ * control: messaging apps lowercase links, and people hand-type them.
+ *
+ * Nothing else is forgiven. No trimming, no separators, no percent escapes — a
+ * segment either looks exactly like a code or it is not an invite link.
+ */
+const INVITE_CODE_SEGMENT_PATTERN = /^[A-Za-z0-9]{6}$/;
+
+/**
+ * Whether a raw URL path segment has the shape of an invite code.
+ *
+ * A SHAPE test, not a validity test: it says the URL is addressed to the invite
+ * surface, nothing about whether the code exists, is unexpired, or is
+ * redeemable. Used by the lockdown (`lib/lockdown.ts`) to decide whether a
+ * `/join/…` URL is an invite link at all; `sanitizeInviteCode` is what the page
+ * then renders through.
+ *
+ * @param segment - Untrusted path segment, exactly as it appears in the URL.
+ */
+export function isInviteCodeShaped(segment: string | undefined | null): boolean {
+  return typeof segment === 'string' && INVITE_CODE_SEGMENT_PATTERN.test(segment);
+}
+
+/**
  * Normalizes a raw route segment into a canonical invite code.
  *
  * The page renders this value verbatim, so the contract is deliberately strict:

@@ -12,9 +12,10 @@ describe('isLockdownExempt — reachable', () => {
   const exempt = [
     // The coming-soon teaser, and the redirect target.
     '/',
-    // An invite link: the code is what makes it one.
+    // An invite link: a code-shaped segment is what makes it one.
     '/join/RBO246',
-    '/join/anything',
+    '/join/rbo246',
+    '/join/123456',
     '/.well-known/apple-app-site-association',
     '/.well-known/appspecific/com.tesla.3p.public-key.pem',
     '/api/auth/session',
@@ -57,25 +58,49 @@ describe('isLockdownExempt — locked down', () => {
 });
 
 /**
- * The invite experience is what a uniquely generated link opens. Someone who
- * trimmed the code off — or who typed `/join` — is not holding an invitation,
- * so they get the teaser like everyone else.
+ * The invite experience is what a uniquely generated link opens. A URL that
+ * could not be one — no code, or a segment that is not shaped like a code —
+ * gets the teaser like everyone else.
  */
-describe('isLockdownExempt — only a code-bearing invite link', () => {
-  it('keeps /join/{CODE} reachable', () => {
-    expect(isLockdownExempt('/join/RBO246')).toBe(true);
+describe('isLockdownExempt — only a code-shaped invite link', () => {
+  const invites = ['/join/RBO246', '/join/rbo246', '/join/rBo2G6', '/join/123456', '/join/ABCDEF'];
+
+  it.each(invites)('keeps %s reachable', (pathname) => {
+    expect(isLockdownExempt(pathname)).toBe(true);
   });
 
-  it('locks down the codeless /join', () => {
-    expect(isLockdownExempt('/join')).toBe(false);
+  const notInvites = [
+    ['the codeless landing', '/join'],
+    ['an empty code segment', '/join/'],
+    ['too short', '/join/1234'],
+    ['five characters', '/join/RBO24'],
+    ['seven characters', '/join/RBO2467'],
+    ['a hyphen', '/join/RBO-24'],
+    ['an underscore', '/join/RBO_24'],
+    ['a percent escape', '/join/RB%246'],
+    ['a percent-encoded space', '/join/RBO246%20'],
+    ['angle brackets', '/join/<b>abc'],
+    ['a dot', '/join/RBO.46'],
+    ['non-ascii digits', '/join/１２３４５６'],
+    ['cyrillic lookalikes', '/join/АВС123'],
+    ['a nested path under a real code', '/join/RBO246/extra'],
+    ['a trailing slash after a real code', '/join/RBO246/'],
+    ['a word', '/join/not-a-valid-code'],
+  ] as const;
+
+  it.each(notInvites)('locks down %s', (_label, pathname) => {
+    expect(isLockdownExempt(pathname)).toBe(false);
   });
 
-  it('locks down /join with an empty code segment', () => {
-    expect(isLockdownExempt('/join/')).toBe(false);
-  });
-
-  it('does not judge whether the code is valid — the URL shape is the signal', () => {
-    expect(isLockdownExempt('/join/not-a-valid-code')).toBe(true);
+  /**
+   * The gate spends public information only. The FORMAT of a code is in every
+   * invite link ever sent; which codes EXIST is a bearer secret, and answering
+   * differently for a real code than for a well-formed fake one would turn this
+   * into an enumeration oracle. A well-formed segment is served either way.
+   */
+  it('does not judge whether a well-formed code is real', () => {
+    expect(isLockdownExempt('/join/ZZZZZZ')).toBe(true);
+    expect(isLockdownExempt('/join/000000')).toBe(true);
   });
 });
 
