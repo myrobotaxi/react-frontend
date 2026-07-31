@@ -252,13 +252,142 @@ describe('verifyInviteLink — tamper matrix', () => {
     ).toBe(false);
   });
 
-  /** Hostile input must redirect, never 500. WebCrypto throws on bad keys. */
-  it('returns false rather than throwing on an unusable key', async () => {
+});
+
+/**
+ * FAILS CLOSED — the property that decides which way a broken deploy breaks.
+ *
+ * If the key or the runtime is unusable, every link must be REJECTED, taking
+ * the whole invite surface down loudly, rather than ACCEPTED, which would look
+ * like a working site with the signature check silently off. The first is
+ * noticed in minutes; the second is noticed by an attacker.
+ *
+ * Each case below is a way the crypto can be broken. Every one of them is
+ * `false`, and none of them throws — a page that 500s has not rejected
+ * anything the caller can act on.
+ */
+describe('verifyInviteLink — fails closed', () => {
+  /** A link that is otherwise perfectly valid, so only the break decides. */
+  const VALID = {
+    code: NAMED.code,
+    k: k(NAMED.expUnix, NAMED.sig),
+    from: NAMED.from,
+    to: NAMED.to,
+  };
+
+  /** Proof the link itself is good: everything below fails for the other reason. */
+  it('accepts the control link', async () => {
+    expect(await verify(VALID)).toBe(true);
+  });
+
+  const UNUSABLE_KEYS: ReadonlyArray<readonly [string, string]> = [
+    ['not base64 at all', 'not base64 at all !!!'],
+    ['empty', ''],
+    ['too short', 'AAAA'],
+    ['too long', Buffer.alloc(64).toString('base64')],
+    ['valid base64, wrong length', Buffer.alloc(31).toString('base64')],
+    ['32 bytes that are not a point on the curve', Buffer.alloc(32, 0xff).toString('base64')],
+  ];
+
+  for (const [label, publicKeyB64] of UNUSABLE_KEYS) {
+    it(`rejects every link when the key is ${label}`, async () => {
+      await expect(
+        verifyInviteLink(VALID, { nowUnix: BEFORE_EXPIRY, publicKeyB64 }),
+      ).resolves.toBe(false);
+    });
+  }
+
+  /**
+   * The runtime, not the key. `crypto.subtle` Ed25519 support is the reason
+   * this verifier runs in the page rather than the edge proxy; if a runtime
+   * ever loses it, these are the shapes that loss takes.
+   */
+  const BROKEN_RUNTIMES: ReadonlyArray<readonly [string, Partial<SubtleCrypto>]> = [
+    [
+      'importKey rejects (unsupported curve)',
+      {
+        importKey: () => Promise.reject(new Error('Unrecognized algorithm name')),
+      } as Partial<SubtleCrypto>,
+    ],
+    [
+      'importKey throws synchronously',
+      {
+        importKey: () => {
+          throw new Error('NotSupportedError');
+        },
+      } as unknown as Partial<SubtleCrypto>,
+    ],
+    [
+      'verify rejects',
+      { verify: () => Promise.reject(new Error('operation not supported')) } as Partial<SubtleCrypto>,
+    ],
+  ];
+
+  for (const [label, stub] of BROKEN_RUNTIMES) {
+    it(`rejects every link when ${label}`, async () => {
+      const real = globalThis.crypto.subtle;
+      Object.defineProperty(globalThis.crypto, 'subtle', {
+        value: { ...real, ...stub },
+        configurable: true,
+      });
+
+      try {
+        await expect(
+          verifyInviteLink(VALID, { nowUnix: BEFORE_EXPIRY, publicKeyB64: TEST_PUBLIC_KEY_B64 }),
+        ).resolves.toBe(false);
+      } finally {
+        Object.defineProperty(globalThis.crypto, 'subtle', {
+          value: real,
+          configurable: true,
+        });
+      }
+    });
+  }
+
+  /** No WebCrypto at all — the TypeError must not escape as a 500. */
+  it('rejects every link when crypto.subtle is absent entirely', async () => {
+    const real = globalThis.crypto.subtle;
+    Object.defineProperty(globalThis.crypto, 'subtle', {
+      value: undefined,
+      configurable: true,
+    });
+
+    try {
+      await expect(
+        verifyInviteLink(VALID, { nowUnix: BEFORE_EXPIRY, publicKeyB64: TEST_PUBLIC_KEY_B64 }),
+      ).resolves.toBe(false);
+    } finally {
+      Object.defineProperty(globalThis.crypto, 'subtle', { value: real, configurable: true });
+    }
+  });
+
+  /**
+   * `verify` is contractually a boolean, but only `true` may be believed. A
+   * runtime returning some other truthy value must not be read as a signature.
+   */
+  it('rejects a truthy non-boolean from verify', async () => {
+    const real = globalThis.crypto.subtle;
+    Object.defineProperty(globalThis.crypto, 'subtle', {
+      value: { ...real, verify: () => Promise.resolve('yes' as unknown as boolean) },
+      configurable: true,
+    });
+
+    try {
+      await expect(
+        verifyInviteLink(VALID, { nowUnix: BEFORE_EXPIRY, publicKeyB64: TEST_PUBLIC_KEY_B64 }),
+      ).resolves.toBe(false);
+    } finally {
+      Object.defineProperty(globalThis.crypto, 'subtle', { value: real, configurable: true });
+    }
+  });
+
+  /**
+   * The env override is the one way a non-production build changes the key. A
+   * garbage value there takes the invite surface down rather than opening it.
+   */
+  it('rejects every link when the injected key is garbage', async () => {
     await expect(
-      verifyInviteLink(
-        { code: NAMED.code, k: k(NAMED.expUnix, NAMED.sig), from: NAMED.from, to: NAMED.to },
-        { nowUnix: BEFORE_EXPIRY, publicKeyB64: 'not base64 at all !!!' },
-      ),
+      verifyInviteLink(VALID, { nowUnix: BEFORE_EXPIRY, publicKeyB64: 'AAAA-not-a-key' }),
     ).resolves.toBe(false);
   });
 });

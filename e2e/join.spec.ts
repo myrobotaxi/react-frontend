@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
 
 import { signedJoinLink, tamper } from './helpers/invite-link';
 
@@ -24,6 +24,41 @@ import { signedJoinLink, tamper } from './helpers/invite-link';
  *     keypair the dev server is configured to trust.
  */
 const ANONYMOUS = { cookies: [], origins: [] };
+
+/**
+ * Assert that a link was REJECTED by the signature check.
+ *
+ * Asserted on the page's OWN response — a 3xx whose `Location` is `/` — rather
+ * than on where the browser eventually stops. That distinction cost a red CI
+ * run: `/` is not a public path, so the proxy's pre-existing auth gate bounces
+ * an anonymous visitor straight on to `/signin?callbackUrl=%2F`, and the
+ * browser's final URL is a fact about the auth gate, not about this feature.
+ *
+ * Worse, where that chain ENDS depends on `AUTH_URL`. With it pointing at the
+ * production apex — as a developer's `.env.local` does — the proxy's redirect
+ * leaves localhost entirely and lands on the real site, whose lockdown sends
+ * `/signin` to `/`. So an assertion on the final URL passed locally by
+ * navigating to production, and failed in CI, where `AUTH_URL` is localhost.
+ * (playwright.config.ts now pins `AUTH_URL` to localhost so the suite can never
+ * do that again.)
+ *
+ * The two things that are actually this feature's business, and are true under
+ * any auth or lockdown configuration:
+ *
+ *   1. the page answered the invite URL with a redirect to `/`, and
+ *   2. no invite ever rendered.
+ */
+async function expectRejected(request: APIRequestContext, page: Page, link: string) {
+  const response = await request.get(link, { maxRedirects: 0 });
+
+  expect(response.status()).toBeGreaterThanOrEqual(300);
+  expect(response.status()).toBeLessThan(400);
+  expect(response.headers()['location']).toBe('/');
+
+  await page.goto(link);
+  await expect(page).not.toHaveURL(/\/join\//);
+  await expect(page.getByTestId('invite-code')).toHaveCount(0);
+}
 
 test.describe('invite landing page — a signed link', () => {
   test.use({ storageState: ANONYMOUS });
@@ -103,11 +138,8 @@ test.describe('invite landing page — an unverifiable link', () => {
   ];
 
   for (const [label, link] of REJECTED) {
-    test(`redirects to the teaser: ${label}`, async ({ page }) => {
-      await page.goto(link);
-
-      await expect(page).toHaveURL(/\/$/);
-      await expect(page.getByTestId('invite-code')).toHaveCount(0);
+    test(`redirects to the teaser: ${label}`, async ({ request, page }) => {
+      await expectRejected(request, page, link);
     });
   }
 
@@ -118,11 +150,15 @@ test.describe('invite landing page — an unverifiable link', () => {
    * canonicalising before verifying would mean verifying something other than
    * what was signed. The sender resends.
    */
-  test('rejects a lower-cased path even though the code shape allows one', async ({ page }) => {
-    await page.goto(signedJoinLink('RBO246').replace('/join/RBO246', '/join/rbo246'));
-
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByTestId('invite-code')).toHaveCount(0);
+  test('rejects a lower-cased path even though the code shape allows one', async ({
+    request,
+    page,
+  }) => {
+    await expectRejected(
+      request,
+      page,
+      signedJoinLink('RBO246').replace('/join/RBO246', '/join/rbo246'),
+    );
   });
 
   /**
@@ -142,19 +178,18 @@ test.describe('invite landing page — an unverifiable link', () => {
    * "who sent this" is not a value the signer could have signed, and picking
    * one would let an attacker choose which the page reads.
    */
-  test('rejects a repeated name parameter rather than picking one', async ({ page }) => {
-    await page.goto(`${SIGNED}&from=Mallory`);
-
-    await expect(page).toHaveURL(/\/$/);
+  test('rejects a repeated name parameter rather than picking one', async ({ request, page }) => {
+    await expectRejected(request, page, `${SIGNED}&from=Mallory`);
   });
 
   // A malformed segment 302s to `/` in production via the lockdown; with the
   // lockdown off it reaches the page, which now redirects it for want of a
   // signature. Same destination, different gate.
-  test('sends a malformed segment to the teaser with the lockdown off too', async ({ page }) => {
-    await page.goto('/join/not-a-valid-code');
-
-    await expect(page).toHaveURL(/\/$/);
+  test('sends a malformed segment to the teaser with the lockdown off too', async ({
+    request,
+    page,
+  }) => {
+    await expectRejected(request, page, '/join/not-a-valid-code');
   });
 });
 

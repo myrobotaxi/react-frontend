@@ -81,6 +81,19 @@ export default defineConfig({
       // __tests__/app/coming-soon-metadata.test.ts for the teaser itself.
       LOCKDOWN_DISABLED: '1',
 
+      // Keep every redirect on localhost.
+      //
+      // `auth()` rewrites `req.url` to AUTH_URL, so the proxy's redirects carry
+      // whatever this is set to. A developer's .env.local points it at the
+      // production apex, which meant a redirect chain in this suite could leave
+      // localhost and land on the REAL SITE — where the production lockdown
+      // answers differently from the build under test. MYR-368 lost a CI run to
+      // exactly that: a rejected invite link was asserted to end at `/`, which
+      // passed locally only because it had navigated to production, and failed
+      // in CI, where AUTH_URL is localhost. CI already sets this; pinning it
+      // here makes a local run mean the same thing.
+      AUTH_URL: 'http://localhost:3000',
+
       // Signed invite links (MYR-368). `/join/{CODE}` now redirects to `/`
       // unless the URL carries a signature this build can verify, so a suite
       // that cannot sign cannot reach the invite page at all. It verifies

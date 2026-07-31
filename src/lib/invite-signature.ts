@@ -236,32 +236,52 @@ export interface InviteLinkVerificationOptions {
  *  • a signature that does not verify — which covers a tampered code, expiry,
  *    or either name, a swapped pair of names, and a signature from another key
  *
- * Never throws. WebCrypto rejects on a malformed key or an unsupported curve
- * rather than returning false, and a landing page that 500s on a hostile URL is
- * a worse failure than one that redirects.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * FAILS CLOSED. This is the property to preserve above all others here.
+ *
+ * If the key cannot be decoded, is the wrong length, cannot be imported, or the
+ * runtime has no usable Ed25519 at all, this returns `false` — so EVERY link
+ * redirects. That is a total, immediately visible outage of the invite surface,
+ * and that is the point: the alternative failure mode is every link rendering,
+ * which looks exactly like a working site while the signature check is silently
+ * off. One gets noticed in minutes; the other gets noticed by an attacker.
+ *
+ * Two things enforce it structurally, and both must stay:
+ *
+ *  1. `true` is returned from EXACTLY ONE place, and only on a strict `=== true`
+ *     from `crypto.subtle.verify`. A runtime that returned some other truthy
+ *     value cannot be mistaken for a verified signature.
+ *  2. Every other path — including anything thrown out of WebCrypto, and
+ *     including `crypto.subtle` being absent entirely — lands on the single
+ *     `return false` below.
+ *
+ * So this never throws. A landing page that 500s on a hostile URL is a worse
+ * failure than one that redirects, and a 500 is not a rejection the caller can
+ * act on.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 export async function verifyInviteLink(
   input: InviteLinkVerificationInput,
   options: InviteLinkVerificationOptions = {},
 ): Promise<boolean> {
-  const parsed = parseInviteSignatureParam(input.k);
-  if (!parsed) return false;
-
-  if (parsed.keyId !== INVITE_LINK_KEY_ID) return false;
-
-  const nowUnix = options.nowUnix ?? Math.floor(Date.now() / 1_000);
-  if (parsed.expUnix < nowUnix) return false;
-
-  const from = singleValue(input.from);
-  const to = singleValue(input.to);
-  if (from === null || to === null) return false;
-
-  const publicKeyBytes = decodeBase64(options.publicKeyB64 ?? invitePublicKeyB64());
-  if (!publicKeyBytes || publicKeyBytes.length !== PUBLIC_KEY_BYTE_LENGTH) return false;
-
-  const payload = buildInviteSignaturePayload(input.code, parsed.expUnix, from, to);
-
   try {
+    const parsed = parseInviteSignatureParam(input.k);
+    if (!parsed) return false;
+
+    if (parsed.keyId !== INVITE_LINK_KEY_ID) return false;
+
+    const nowUnix = options.nowUnix ?? Math.floor(Date.now() / 1_000);
+    if (parsed.expUnix < nowUnix) return false;
+
+    const from = singleValue(input.from);
+    const to = singleValue(input.to);
+    if (from === null || to === null) return false;
+
+    const publicKeyBytes = decodeBase64(options.publicKeyB64 ?? invitePublicKeyB64());
+    if (!publicKeyBytes || publicKeyBytes.length !== PUBLIC_KEY_BYTE_LENGTH) return false;
+
+    const payload = buildInviteSignaturePayload(input.code, parsed.expUnix, from, to);
+
     const key = await crypto.subtle.importKey(
       'raw',
       publicKeyBytes,
@@ -270,12 +290,15 @@ export async function verifyInviteLink(
       ['verify'],
     );
 
-    return await crypto.subtle.verify(
+    const verified = await crypto.subtle.verify(
       { name: 'Ed25519' },
       key,
       parsed.signature,
       new TextEncoder().encode(payload),
     );
+
+    // The only `true` in this function, and it is strict on purpose.
+    return verified === true;
   } catch {
     return false;
   }
