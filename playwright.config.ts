@@ -1,6 +1,8 @@
 import { loadEnvConfig } from '@next/env';
 import { defineConfig, devices } from '@playwright/test';
 
+import { TEST_INVITE_PUBLIC_KEY_B64 } from './e2e/helpers/invite-link';
+
 // Load .env.local so DATABASE_URL and AUTH_SECRET are available to Playwright
 // setup scripts (prisma db push/seed, JWT generation).
 loadEnvConfig(process.cwd());
@@ -78,6 +80,33 @@ export default defineConfig({
       // exemptions, __tests__/features/landing/ and
       // __tests__/app/coming-soon-metadata.test.ts for the teaser itself.
       LOCKDOWN_DISABLED: '1',
+
+      // Keep every redirect on localhost.
+      //
+      // `auth()` rewrites `req.url` to AUTH_URL, so the proxy's redirects carry
+      // whatever this is set to. A developer's .env.local points it at the
+      // production apex, which meant a redirect chain in this suite could leave
+      // localhost and land on the REAL SITE — where the production lockdown
+      // answers differently from the build under test. MYR-368 lost a CI run to
+      // exactly that: a rejected invite link was asserted to end at `/`, which
+      // passed locally only because it had navigated to production, and failed
+      // in CI, where AUTH_URL is localhost. CI already sets this; pinning it
+      // here makes a local run mean the same thing.
+      AUTH_URL: 'http://localhost:3000',
+
+      // Signed invite links (MYR-368). `/join/{CODE}` now redirects to `/`
+      // unless the URL carries a signature this build can verify, so a suite
+      // that cannot sign cannot reach the invite page at all. It verifies
+      // against a throwaway keypair instead of the production key, whose
+      // signing seed is a Fly secret no test process holds.
+      //
+      // `lib/invite-signature.ts` reads this variable ONLY when
+      // `NODE_ENV !== 'production'` — which is true for the `next dev` server
+      // started here and false for `next build` and every Vercel deployment —
+      // so setting it cannot weaken a deployed build. The private half lives
+      // in e2e/helpers/invite-link.ts, derived from the same constant, so the
+      // key the server trusts and the key the specs sign with cannot drift.
+      INVITE_LINK_TEST_PUBLIC_KEY: TEST_INVITE_PUBLIC_KEY_B64,
     },
   },
 });
