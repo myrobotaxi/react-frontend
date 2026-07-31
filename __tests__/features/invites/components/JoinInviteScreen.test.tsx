@@ -7,9 +7,7 @@ import { TESTFLIGHT_JOIN_URL } from '@/lib/constants';
 describe('JoinInviteScreen — with a code', () => {
   it('renders the invite headline', () => {
     render(<JoinInviteScreen code="RBO246" />);
-    expect(
-      screen.getByRole('heading', { name: /invited to ride a Tesla on MyRoboTaxi/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: "You're invited! 🎉" })).toBeInTheDocument();
   });
 
   it('shows the code prominently', () => {
@@ -68,38 +66,64 @@ describe('JoinInviteScreen — without a code', () => {
   });
 });
 
-describe('JoinInviteScreen — named by the link (MYR-359)', () => {
-  it('names the sender in the heading, matching the preview card that was tapped', () => {
-    render(<JoinInviteScreen code="RBO246" inviterName="Thomas" />);
+/**
+ * MYR-359 / MYR-368 — the names the link carried, rendered in the
+ * client-approved copy. The heading and sub-line here are the SAME strings the
+ * page's `generateMetadata` puts in `og:title` and `og:description`, so the
+ * recipient reads the same sentence before and after tapping.
+ */
+describe('JoinInviteScreen — named by the link', () => {
+  it('greets the recipient and names the owner when the link carried both', () => {
+    render(<JoinInviteScreen code="RBO246" inviterName="Alex" recipientName="Mira" />);
+    expect(screen.getByRole('heading', { name: "You're in, Mira! 🎉" })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Thomas invited you to ride their Tesla' }),
+      screen.getByText('Alex is sharing their Tesla with you on MyRoboTaxi.'),
     ).toBeInTheDocument();
   });
 
-  it('names them on the codeless landing too', () => {
-    render(<JoinInviteScreen code={null} inviterName="Thomas" />);
-    expect(
-      screen.getByRole('heading', { name: 'Thomas invited you to ride their Tesla' }),
-    ).toBeInTheDocument();
+  it('welcomes without a name when only the owner is named', () => {
+    render(<JoinInviteScreen code="RBO246" inviterName="Alex" />);
+    expect(screen.getByRole('heading', { name: "You're in! 🎉" })).toBeInTheDocument();
+    expect(screen.getByText('Alex is sharing their Tesla with you.')).toBeInTheDocument();
   });
 
-  it('falls back to the generic heading with no name', () => {
+  it('falls back to the generic copy with no names', () => {
     for (const absent of [null, undefined]) {
-      const { unmount } = render(<JoinInviteScreen code="RBO246" inviterName={absent} />);
+      const { unmount } = render(
+        <JoinInviteScreen code="RBO246" inviterName={absent} recipientName={absent} />,
+      );
+      expect(screen.getByRole('heading', { name: "You're invited! 🎉" })).toBeInTheDocument();
       expect(
-        screen.getByRole('heading', { name: /invited to ride a Tesla on MyRoboTaxi/i }),
+        screen.getByText('Someone is sharing their Tesla with you on MyRoboTaxi.'),
       ).toBeInTheDocument();
       unmount();
     }
   });
 
-  it('shows the code and the TestFlight route exactly as before — only the heading changes', () => {
-    render(<JoinInviteScreen code="RBO246" inviterName="Thomas" />);
+  it('shows the code and the TestFlight route exactly as before — only the copy changes', () => {
+    render(<JoinInviteScreen code="RBO246" inviterName="Alex" recipientName="Mira" />);
     expect(screen.getByTestId('invite-code')).toHaveTextContent('RBO246');
     expect(screen.getByRole('link', { name: /get the app on testflight/i })).toHaveAttribute(
       'href',
       TESTFLIGHT_JOIN_URL,
     );
+  });
+
+  /**
+   * Some invites are location-only — they grant no rides at all — so the old
+   * "ride their Tesla" copy was wrong on that tier. Nothing on the page may
+   * promise one again, in any variant.
+   */
+  it('promises no ride, whichever names the link carried', () => {
+    for (const props of [
+      { inviterName: 'Alex', recipientName: 'Mira' },
+      { inviterName: 'Alex' },
+      {},
+    ]) {
+      const { container, unmount } = render(<JoinInviteScreen code="RBO246" {...props} />);
+      expect(container.textContent).not.toMatch(/ride/i);
+      unmount();
+    }
   });
 });
 

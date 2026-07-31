@@ -4,26 +4,21 @@ import type { Metadata } from 'next';
 // re-exports the invite server actions, which pull in Prisma. This page must
 // stay free of any backend dependency.
 import { JoinInviteScreen } from '@/features/invites/components/JoinInviteScreen';
-import { sanitizeInviterName } from '@/lib/inviter-name';
 
 import { buildJoinMetadata } from './join-metadata';
 
-interface JoinPageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}
-
 /**
- * Link-preview tags for `/join?from={Name}` (MYR-359).
+ * Link-preview tags for `/join`.
  *
- * The codeless route reads the name for the same reason the code-carrying one
- * does: a recipient who trimmed the code off the link, or who was sent the
- * landing page directly, still sees a card — and a card that names the sender is
- * the difference between "someone shared something" and an invitation.
+ * ALWAYS GENERIC — the codeless route no longer reads `?from=` (MYR-368).
+ * Names on a join link are trusted because a signature covers them, and a
+ * signature covers the CODE; with no code there is nothing to verify against,
+ * so a name here would be exactly the crafted-URL-into-a-cached-og:title
+ * problem that MYR-368 closed on the route next door. It renders the no-names
+ * copy instead.
  */
-export async function generateMetadata({ searchParams }: JoinPageProps): Promise<Metadata> {
-  const { from } = await searchParams;
-
-  return buildJoinMetadata(sanitizeInviterName(from));
+export function generateMetadata(): Metadata {
+  return buildJoinMetadata(null, null);
 }
 
 /**
@@ -40,8 +35,6 @@ export async function generateMetadata({ searchParams }: JoinPageProps): Promise
  * policy, not deleted, so reverting the lockdown restores it — and it is what
  * the Playwright suite renders with the lockdown switched off.
  */
-export default async function JoinPage({ searchParams }: JoinPageProps) {
-  const { from } = await searchParams;
-
-  return <JoinInviteScreen code={null} inviterName={sanitizeInviterName(from)} />;
+export default function JoinPage() {
+  return <JoinInviteScreen code={null} />;
 }
