@@ -1,9 +1,18 @@
 /**
- * Regenerates the static link-preview card served as og:image for /join.
+ * Regenerates the static link-preview cards.
  *
- * The card is deliberately GENERIC — no invite code, no sender or recipient
- * name. Messaging apps cache previews and show them to everyone in a thread,
- * so anything baked in here is public.
+ * Two of them, identical but for one line of copy, because the two public
+ * surfaces are shared with different people:
+ *
+ *  • `invite-card.png` — og:image for `/join/{CODE}`. Sent to one recipient,
+ *    and forwarded from there.
+ *  • `coming-soon.png` — og:image for the apex teaser at `/`. The domain is
+ *    posted publicly; a card that says someone is invited would undo the point
+ *    of putting the invite experience behind a uniquely generated link.
+ *
+ * Both are deliberately GENERIC — no invite code, no sender or recipient name.
+ * Messaging apps cache previews and show them to everyone in a thread, so
+ * anything baked in here is public.
  *
  * The lockup is the canonical brand: the two-tone gold facet arrow on a matte
  * near-black tile, above the single-color uppercase wordmark. It is duplicated
@@ -13,14 +22,24 @@
  * `ios-app/design/app/components.jsx:9-45`. No hexagons.
  *
  * Run: node scripts/generate-og-image.mjs
- * Output: public/og/invite-card.png (1200x630)
+ * Output: public/og/invite-card.png, public/og/coming-soon.png (1200x630)
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'fs';
 import { resolve } from 'path';
 
 const OUT_DIR = resolve('./public/og');
-const OUT_FILE = resolve(OUT_DIR, 'invite-card.png');
+
+/**
+ * The cards, in the order they are written. `tagline` is the ONLY thing that
+ * varies — the ground, the lockup and the wash are the brand and stay in step.
+ * Keep the filenames in step with `INVITE_OG_IMAGE_PATH` and
+ * `COMING_SOON_OG_IMAGE_PATH` in `src/lib/constants.ts`.
+ */
+const CARDS = [
+  { file: 'invite-card.png', tagline: 'You&rsquo;re invited to ride a Tesla' },
+  { file: 'coming-soon.png', tagline: 'Coming soon' },
+];
 
 const WIDTH = 1200;
 const HEIGHT = 630;
@@ -33,7 +52,7 @@ const RADIUS = TILE * 0.225;
 const ARROW = TILE * 0.56;
 const GLOW = TILE * 0.92;
 
-const html = `<!doctype html>
+const buildHtml = (tagline) => `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -122,7 +141,7 @@ const html = `<!doctype html>
         </svg>
       </div>
       <div class="wordmark">myrobotaxi</div>
-      <div class="tagline">You&rsquo;re invited to ride a Tesla</div>
+      <div class="tagline">${tagline}</div>
     </div>
   </body>
 </html>`;
@@ -137,22 +156,27 @@ async function run() {
     colorScheme: 'dark',
   });
 
-  await page.setContent(html, { waitUntil: 'networkidle' });
+  for (const card of CARDS) {
+    await page.setContent(buildHtml(card.tagline), { waitUntil: 'networkidle' });
 
-  // The wordmark is the whole point of the card, so fail loudly rather than
-  // silently shipping it in a fallback face.
-  const loaded = await page.evaluate(async () => {
-    await document.fonts.ready;
-    return document.fonts.check('500 76px Roboto');
-  });
-  if (!loaded) {
-    throw new Error('Roboto 500 did not load — refusing to render the wordmark in a fallback face');
+    // The wordmark is the whole point of the card, so fail loudly rather than
+    // silently shipping it in a fallback face.
+    const loaded = await page.evaluate(async () => {
+      await document.fonts.ready;
+      return document.fonts.check('500 76px Roboto');
+    });
+    if (!loaded) {
+      throw new Error(
+        'Roboto 500 did not load — refusing to render the wordmark in a fallback face',
+      );
+    }
+
+    const outFile = resolve(OUT_DIR, card.file);
+    await page.screenshot({ path: outFile, type: 'png' });
+    console.log(`Wrote ${outFile} (${WIDTH}x${HEIGHT})`);
   }
 
-  await page.screenshot({ path: OUT_FILE, type: 'png' });
   await browser.close();
-
-  console.log(`Wrote ${OUT_FILE} (${WIDTH}x${HEIGHT})`);
 }
 
 run().catch((err) => {

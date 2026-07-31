@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { INVITE_OG_IMAGE_PATH, SITE_ORIGIN } from '@/lib/constants';
+import { COMING_SOON_OG_IMAGE_PATH, SITE_ORIGIN } from '@/lib/constants';
 
 /** What the apex domain calls itself everywhere a preview shows up. */
 export const COMING_SOON_TITLE = 'MyRoboTaxi';
@@ -15,9 +15,10 @@ export const COMING_SOON_DESCRIPTION = 'Coming soon.';
  * `join-metadata.ts` exists: the tags are the half of the page that a scraper
  * reads instead of rendering it, so they are worth testing on their own.
  *
- * Nothing here hints at the invite surface. The apex domain is shared publicly;
- * a card that advertised invites would undo the point of moving the invite
- * landing behind a code.
+ * Nothing here hints at the invite surface — including the image, which is the
+ * teaser's own card rather than the invite one. The apex domain is shared
+ * publicly; a preview telling the public they are invited would undo the point
+ * of moving the invite landing behind a code.
  */
 export function buildComingSoonMetadata(): Metadata {
   return {
@@ -31,7 +32,7 @@ export function buildComingSoonMetadata(): Metadata {
       description: COMING_SOON_DESCRIPTION,
       images: [
         {
-          url: INVITE_OG_IMAGE_PATH,
+          url: COMING_SOON_OG_IMAGE_PATH,
           width: 1200,
           height: 630,
           alt: COMING_SOON_TITLE,
@@ -42,7 +43,7 @@ export function buildComingSoonMetadata(): Metadata {
       card: 'summary_large_image',
       title: COMING_SOON_TITLE,
       description: COMING_SOON_DESCRIPTION,
-      images: [INVITE_OG_IMAGE_PATH],
+      images: [COMING_SOON_OG_IMAGE_PATH],
     },
   };
 }

@@ -5,7 +5,7 @@ import {
   COMING_SOON_DESCRIPTION,
   COMING_SOON_TITLE,
 } from '@/app/coming-soon-metadata';
-import { INVITE_OG_IMAGE_PATH } from '@/lib/constants';
+import { COMING_SOON_OG_IMAGE_PATH, INVITE_OG_IMAGE_PATH } from '@/lib/constants';
 
 /**
  * The half of the root page a scraper reads instead of rendering it. Whatever a
@@ -30,15 +30,25 @@ describe('buildComingSoonMetadata', () => {
     expect(COMING_SOON_DESCRIPTION).toBe('Coming soon.');
   });
 
-  it('uses the existing brand card as the preview image', () => {
+  it('uses the teaser card as the preview image', () => {
     const meta = buildComingSoonMetadata();
     const images = meta.openGraph && 'images' in meta.openGraph ? meta.openGraph.images : null;
 
-    expect(JSON.stringify(images)).toContain(INVITE_OG_IMAGE_PATH);
-    expect(meta.twitter?.images).toEqual([INVITE_OG_IMAGE_PATH]);
+    expect(JSON.stringify(images)).toContain(COMING_SOON_OG_IMAGE_PATH);
+    expect(meta.twitter?.images).toEqual([COMING_SOON_OG_IMAGE_PATH]);
     expect(meta.twitter && 'card' in meta.twitter ? meta.twitter.card : undefined).toBe(
       'summary_large_image',
     );
+  });
+
+  /**
+   * The invite card carries "You're invited to ride a Tesla" in the PNG itself,
+   * where no amount of copy on this page can qualify it. The apex link is
+   * posted publicly; borrowing that card would tell every passer-by they were
+   * invited, which is the thing the teaser exists to stop.
+   */
+  it('never borrows the invite card', () => {
+    expect(JSON.stringify(buildComingSoonMetadata())).not.toContain(INVITE_OG_IMAGE_PATH);
   });
 
   it('resolves relative asset URLs against the public origin', () => {
