@@ -1,17 +1,21 @@
 /**
- * The sender's first name, as it may arrive on `/join/{CODE}?from={Name}`.
+ * The display names a join link may carry: `?from={Sender}` and `?to={Recipient}`.
  *
- * The iOS app appends this parameter so the landing page — and, more
- * importantly, the link-preview card the recipient sees before tapping anything
- * — can say "{Name} invited you to ride their Tesla" instead of the generic
- * line (MYR-359).
+ * The iOS app appends them so the landing page — and, more importantly, the
+ * link-preview card the recipient sees before tapping anything — can say
+ * "You're in, Mira! 🎉 / Alex is sharing their Tesla with you" instead of the
+ * generic line (MYR-359, MYR-368).
  *
- * It is UNTRUSTED INPUT with an unusually wide blast radius. The value lands in
- * an `og:title`, which messaging platforms scrape, cache, and show to everyone
- * a link is forwarded to. Anyone can craft the URL, so the only safe contract is
- * an allow-list: a value either IS a plain name or it does not exist. Nothing is
- * "cleaned up" — a partially-salvaged value is exactly how junk ends up in a
- * cached page title with nobody having decided to put it there.
+ * Since MYR-368 both values are covered by the link's Ed25519 signature
+ * (`lib/invite-signature.ts`), so a link that reaches the page has already been
+ * shown to be one we minted. This module stays anyway, as DEFENCE IN DEPTH: it
+ * is the guard that does not depend on the key being right, the clock being
+ * right, or the verifier being wired into every route that renders a name. The
+ * value still lands in an `og:title` that messaging platforms scrape, cache,
+ * and show to everyone a link is forwarded to, and the contract is unchanged —
+ * an allow-list, where a value either IS a plain name or it does not exist.
+ * Nothing is "cleaned up": a partially-salvaged value is exactly how junk ends
+ * up in a cached page title with nobody having decided to put it there.
  *
  * No React code — importable from server components, `generateMetadata`, and
  * route handlers.
@@ -21,7 +25,7 @@
 export const INVITER_NAME_MAX_LENGTH = 20;
 
 /**
- * Canonical shape of an inviter name: 1–20 ASCII letters, nothing else.
+ * Canonical shape of a name on a join link: 1–20 ASCII letters, nothing else.
  *
  * Deliberately narrower than "a name": the sending client (`InviteLink
  * .inviterName`) already strips the punctuation real names carry — "Mary-Jane"
@@ -53,3 +57,13 @@ export function sanitizeInviterName(raw: string | string[] | undefined | null): 
 
   return trimmed;
 }
+
+/**
+ * The same guard for the `to` search param — the recipient's name (MYR-368).
+ *
+ * Deliberately an alias rather than a second implementation: both names are
+ * written by the same sending client, travel on the same link, are covered by
+ * the same signature, and land in the same `og:title`. Two rules would be two
+ * places to widen, and the narrower one would be found by whoever forgot.
+ */
+export const sanitizeRecipientName = sanitizeInviterName;
