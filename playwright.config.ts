@@ -68,10 +68,12 @@ export default defineConfig({
       // is reverted.
       //
       // The lockdown cannot be exercised from this suite: with it on, `/` is
-      // the teaser rather than the app (so every authenticated spec below
-      // would test the wrong page), and its redirects carry a Location of
-      // AUTH_URL — the production apex — so a browser following one would
-      // leave localhost entirely. The policy is unit-tested instead:
+      // the teaser rather than the app, so every authenticated spec below
+      // would test the wrong page. Locally there is a second obstacle — its
+      // redirects carry a Location of AUTH_URL, which .env.local sets to the
+      // production apex, so a browser following one leaves localhost
+      // altogether. (CI sets AUTH_URL to localhost, so only the first reason
+      // applies there.) The policy is unit-tested instead:
       // __tests__/lib/lockdown.test.ts for the redirect target and the
       // exemptions, __tests__/features/landing/ and
       // __tests__/app/coming-soon-metadata.test.ts for the teaser itself.
