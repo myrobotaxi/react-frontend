@@ -1,6 +1,8 @@
 import { loadEnvConfig } from '@next/env';
 import { defineConfig, devices } from '@playwright/test';
 
+import { TEST_INVITE_PUBLIC_KEY_B64 } from './e2e/helpers/invite-link';
+
 // Load .env.local so DATABASE_URL and AUTH_SECRET are available to Playwright
 // setup scripts (prisma db push/seed, JWT generation).
 loadEnvConfig(process.cwd());
@@ -78,6 +80,20 @@ export default defineConfig({
       // exemptions, __tests__/features/landing/ and
       // __tests__/app/coming-soon-metadata.test.ts for the teaser itself.
       LOCKDOWN_DISABLED: '1',
+
+      // Signed invite links (MYR-368). `/join/{CODE}` now redirects to `/`
+      // unless the URL carries a signature this build can verify, so a suite
+      // that cannot sign cannot reach the invite page at all. It verifies
+      // against a throwaway keypair instead of the production key, whose
+      // signing seed is a Fly secret no test process holds.
+      //
+      // `lib/invite-signature.ts` reads this variable ONLY when
+      // `NODE_ENV !== 'production'` — which is true for the `next dev` server
+      // started here and false for `next build` and every Vercel deployment —
+      // so setting it cannot weaken a deployed build. The private half lives
+      // in e2e/helpers/invite-link.ts, derived from the same constant, so the
+      // key the server trusts and the key the specs sign with cannot drift.
+      INVITE_LINK_TEST_PUBLIC_KEY: TEST_INVITE_PUBLIC_KEY_B64,
     },
   },
 });
