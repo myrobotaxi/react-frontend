@@ -15,6 +15,7 @@
  */
 
 import { JOIN_ROUTE, ROOT_ROUTE } from './constants';
+import { isInviteCodeShaped } from './invite-code';
 
 /**
  * Whether the lockdown is active. On unless explicitly switched off, so a
@@ -66,7 +67,7 @@ export const LOCKDOWN_REDIRECT_STATUS = 302;
  *   card. Scrapers fetch the og image directly and must not be bounced.
  *
  * The two paths NOT in this list because they are not simple prefixes — the
- * redirect target itself and a code-bearing invite link — are handled in
+ * redirect target itself and a code-shaped invite link — are handled in
  * `isLockdownExempt`.
  *
  * Deliberately NOT exempt: `/monitoring`, the Sentry tunnel from
@@ -91,22 +92,40 @@ export const LOCKDOWN_EXEMPT_PREFIXES = [
  *
  * 1. The redirect target `/` itself — the teaser. Exempting it is what stops
  *    the redirect from looping.
- * 2. `/join/{CODE}` — an invite link. The code is what makes it one: bare
- *    `/join` carries no invitation, so it goes to the teaser like any other
- *    retired route. Whether the segment is a *valid* code is deliberately not
- *    checked here — the URL shape is the signal, and `/join/[code]` answers 200
- *    with generic copy for anything unparseable rather than telling a scraper
- *    which codes are well-formed.
+ * 2. `/join/{CODE}`, where the segment is SHAPED like a code (six
+ *    alphanumerics, either case). Bare `/join` carries no invitation, and
+ *    neither does `/join/1234` — those go to the teaser like any other retired
+ *    route, so a URL that could not be an invite link never reaches the invite
+ *    page.
  * 3. One of the prefixes above, with or without a subpath.
  *
  * Prefix matching is boundary-aware: `/joinery` is not exempt just because it
  * starts with `/join`.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * SHAPE, NOT VALIDITY — do not "fix" this by looking the code up.
+ *
+ * A well-formed segment is served whether or not the code exists, is unexpired,
+ * or was ever minted. That is deliberate, and it is the whole design:
+ *
+ *  • This runs in the edge proxy on EVERY request. A database lookup here would
+ *    put the invite table in front of unauthenticated traffic from anyone who
+ *    can type a URL.
+ *  • Answering differently for a real code than for a well-formed fake one
+ *    turns this route into an oracle: 36^6 guesses, answered by a redirect, is
+ *    an enumeration API for bearer-grade codes. `/join/[code]` returns 200 for
+ *    every well-formed segment for exactly this reason, and the page never
+ *    validates or redeems — the app does that, after the recipient installs it.
+ *
+ * Shape is public information (the format is in every invite link ever sent);
+ * existence is not. This gate only spends the former.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 export function isLockdownExempt(pathname: string): boolean {
   if (pathname === LOCKDOWN_REDIRECT_PATH) return true;
 
-  if (pathname.startsWith(`${JOIN_ROUTE}/`) && pathname.length > JOIN_ROUTE.length + 1) {
-    return true;
+  if (pathname.startsWith(`${JOIN_ROUTE}/`)) {
+    return isInviteCodeShaped(pathname.slice(JOIN_ROUTE.length + 1));
   }
 
   return LOCKDOWN_EXEMPT_PREFIXES.some(

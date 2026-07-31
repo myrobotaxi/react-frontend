@@ -32,10 +32,22 @@ export async function generateMetadata({ searchParams }: JoinCodePageProps): Pro
  *
  * Rendering is a pure function of the URL: the code is sanitized and echoed
  * back, the sender's name is sanitized and used only to title the page, and
- * neither is sent to an API, validated, or logged. An unparseable segment falls
- * back to the codeless copy and still returns 200 (a 404 would tell a link
- * scraper which codes are well-formed); an unparseable `from` falls back to the
- * generic heading.
+ * neither is sent to an API, validated, or logged. An unparseable `from` falls
+ * back to the generic heading.
+ *
+ * THIS PAGE DOES NOT CHECK WHETHER THE CODE IS REAL, and must not start.
+ * Everything that reaches it in production is already code-SHAPED — the
+ * lockdown turns anything else away before it gets here (`lib/lockdown.ts`) —
+ * and shape is where the checking stops. A page that answered differently for a
+ * real code than for a well-formed fake one would be an enumeration oracle for
+ * what is a bearer credential; every well-formed segment gets the same 200 and
+ * the same page. The app validates and redeems, after the recipient installs
+ * it.
+ *
+ * The sanitizer's `null` branch — generic copy, no code, still 200 — therefore
+ * covers only what the shape gate cannot: a run of the app with the lockdown
+ * switched off, and whitespace-padded segments the gate rejects but the
+ * sanitizer would trim. It is a fallback, not a validity check.
  */
 export default async function JoinCodePage({ params, searchParams }: JoinCodePageProps) {
   const { code } = await params;

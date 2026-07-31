@@ -12,11 +12,12 @@ import { test, expect } from '@playwright/test';
  * are worth holding in mind while reading these specs, because they decide
  * which of them describe a page a real visitor can reach:
  *
- *  • `/join/{CODE}` is exempt — everything below that loads a code-bearing URL
- *    is the production experience.
- *  • bare `/join` is NOT. It is retired behind a 302 to the coming-soon teaser
- *    at `/`, so the codeless specs below cover the route as it still exists in
- *    code, reachable only with the lockdown switched off.
+ *  • a CODE-SHAPED `/join/{CODE}` is exempt — everything below that loads a
+ *    six-alphanumeric URL is the production experience.
+ *  • bare `/join`, and any segment that is not code-shaped (`/join/1234`,
+ *    `/join/not-a-valid-code`), are NOT. They are retired behind a 302 to the
+ *    coming-soon teaser at `/`, so the specs below that use them cover the
+ *    route as it still exists in code, reachable only with the lockdown off.
  */
 const ANONYMOUS = { cookies: [], origins: [] };
 
@@ -36,7 +37,23 @@ test.describe('invite landing page', () => {
     await expect(page.getByTestId('invite-code')).toHaveText('RBO246');
   });
 
-  test('shows generic copy and no code for an invalid code', async ({ page }) => {
+  test('renders a code-shaped segment without asking whether the code is real', async ({
+    page,
+  }) => {
+    // Well-formed and almost certainly not a real code. It gets the same page
+    // and the same 200 as a live one — the route is not an oracle.
+    const response = await page.goto('/join/ZZZZZZ');
+
+    expect(response?.status()).toBe(200);
+    await expect(page.getByTestId('invite-code')).toHaveText('ZZZZZZ');
+  });
+
+  // A malformed segment 302s to `/` in production (see lockdown.test.ts). With
+  // the lockdown off it reaches the page, which falls back to generic copy
+  // rather than 404ing — the fallback behind the gate, still worth holding.
+  test('falls back to generic copy for a malformed segment with the lockdown off', async ({
+    page,
+  }) => {
     const response = await page.goto('/join/not-a-valid-code');
 
     expect(response?.status()).toBe(200);

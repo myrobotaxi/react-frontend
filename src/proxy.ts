@@ -27,7 +27,7 @@ export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
 
   // ─── LOCKDOWN (see lib/lockdown.ts; revert that commit to undo) ───────────
-  // The web app is retired. Everything except a code-bearing invite link and
+  // The web app is retired. Everything except a code-shaped invite link and
   // the endpoints outside systems are registered against goes to the
   // coming-soon teaser at `/`.
   if (isLockdownEnabled() && !isLockdownExempt(pathname)) {
