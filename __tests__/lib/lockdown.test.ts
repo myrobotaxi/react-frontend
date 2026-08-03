@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 
+import { isBetaExcludedPath } from '@/lib/beta-gate';
+import { PRIVACY_ROUTE } from '@/lib/constants';
 import {
   isLockdownEnabled,
   isLockdownExempt,
@@ -7,6 +9,7 @@ import {
   LOCKDOWN_REDIRECT_PATH,
   LOCKDOWN_REDIRECT_STATUS,
 } from '@/lib/lockdown';
+import { isPublicPath } from '@/lib/public-paths';
 
 describe('isLockdownExempt — reachable', () => {
   const exempt = [
@@ -27,6 +30,9 @@ describe('isLockdownExempt — reachable', () => {
     '/_next/image',
     '/favicon.ico',
     '/og/invite-card.png',
+    // The privacy policy — registered in App Store Connect, fetched by Apple's
+    // review with no session and no invite link (MYR-427).
+    '/privacy',
   ];
 
   it.each(exempt)('keeps %s reachable', (pathname) => {
@@ -171,6 +177,19 @@ describe('lockdown configuration', () => {
       '/_next',
       '/favicon.ico',
       '/og',
+      '/privacy',
     ]);
+  });
+
+  /**
+   * The policy is behind three independent gates, and only the lockdown is
+   * asserted above. The auth gate in `proxy.ts` and the beta gate both have
+   * their own allow-lists, and the beta gate is the one that can be switched on
+   * from the Vercel dashboard without a code change — so a reader could lose
+   * the policy to a password prompt without anyone touching this repo.
+   */
+  it('is public to the auth gate and the beta gate as well', () => {
+    expect(isPublicPath(PRIVACY_ROUTE)).toBe(true);
+    expect(isBetaExcludedPath(PRIVACY_ROUTE)).toBe(true);
   });
 });

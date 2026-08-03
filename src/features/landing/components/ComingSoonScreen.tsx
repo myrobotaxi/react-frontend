@@ -1,13 +1,20 @@
+import { LegalFooter } from '@/components/layout/LegalFooter';
 import { Logo } from '@/components/ui/Logo';
 
 /**
  * The apex domain's public face — `https://myrobotaxi.app`.
  *
- * Deliberately empty of everything except the brand: no navigation, no links,
- * no TestFlight button, no form, no mention of invites. Anyone who types the
+ * Deliberately empty of everything except the brand: no navigation, no
+ * TestFlight button, no form, no mention of invites. Anyone who types the
  * bare domain lands here; the invite experience belongs to people holding a
  * uniquely generated `/join/{CODE}` link, and a landing page that hands it to
  * every visitor is what this replaces.
+ *
+ * The single exception to "no links" is the privacy policy in the footer
+ * (MYR-427). An app on TestFlight has to publish one somewhere a person can
+ * find without an invite, and the apex domain is that somewhere. It is anchored
+ * to the bottom rather than placed in the flex flow so the lockup stays centred
+ * in the viewport exactly as before.
  *
  * The gold wash and the glowing lockup are the design system's sign-in backdrop
  * (`ios-app/design/app/screens.jsx:184`), the same one the link-preview card is
@@ -28,6 +35,8 @@ export function ComingSoonScreen() {
           Coming soon
         </p>
       </div>
+
+      <LegalFooter variant="anchored" />
     </main>
   );
 }

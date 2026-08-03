@@ -10,7 +10,12 @@ export const BETA_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 
 // Paths that bypass the beta gate. Some overlap with PUBLIC_PATHS in proxy.ts
 // (which controls auth bypass) — keep both in sync when adding new public routes.
-const BETA_EXCLUDED_PATHS = ['/beta', '/join', '/api/auth', '/.well-known'];
+//
+// `/privacy` is here because the gate is the one of the three gates that can be
+// switched on from the Vercel dashboard without a code change. If it ever is,
+// the privacy policy must not disappear behind a password prompt: its URL is
+// registered in App Store Connect and Apple's review fetches it anonymously.
+const BETA_EXCLUDED_PATHS = ['/beta', '/join', '/privacy', '/api/auth', '/.well-known'];
 
 /**
  * Returns true when the beta gate is active (env var is set).

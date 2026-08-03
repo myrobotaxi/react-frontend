@@ -99,14 +99,27 @@ test.describe('invite landing page — a signed link', () => {
     await expect(page).toHaveURL(/\/join\/RBO246\?/);
   });
 
-  test('is standalone — the only link leaves the site', async ({ page }) => {
+  /**
+   * The page links off the site to TestFlight, and to exactly one route on it:
+   * the privacy policy (MYR-427), which a recipient deciding whether to install
+   * the app should be able to read first. Nothing else — a link back into the
+   * retired app would still fail this.
+   */
+  test('is standalone — TestFlight and the privacy policy, nothing else', async ({ page }) => {
     await page.goto(signedJoinLink('RBO246'));
 
     const hrefs = await page.locator('a').evaluateAll((links) =>
       links.map((link) => link.getAttribute('href')),
     );
 
-    expect(hrefs).toEqual(['https://testflight.apple.com/join/uarZRUbg']);
+    expect(hrefs).toEqual(['https://testflight.apple.com/join/uarZRUbg', '/privacy']);
+  });
+
+  test('the privacy policy it links to actually serves', async ({ page }) => {
+    const response = await page.goto('/privacy');
+
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole('heading', { name: /privacy policy/i })).toBeVisible();
   });
 });
 

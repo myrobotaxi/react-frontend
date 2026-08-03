@@ -11,13 +11,9 @@ import {
   LOCKDOWN_REDIRECT_PATH,
   LOCKDOWN_REDIRECT_STATUS,
 } from '@/lib/lockdown';
+import { isPublicPath } from '@/lib/public-paths';
 
 const AUTH_PAGES = ['/signin', '/signup'];
-const PUBLIC_PATHS = ['/signin', '/signup', '/beta', '/join', '/api/auth', '/.well-known'];
-
-function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.some((path) => pathname.startsWith(path));
-}
 
 function isAuthPage(pathname: string): boolean {
   return AUTH_PAGES.some((path) => pathname === path);

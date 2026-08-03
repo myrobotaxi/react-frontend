@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 import { JoinInviteScreen } from '@/features/invites/components/JoinInviteScreen';
-import { TESTFLIGHT_JOIN_URL } from '@/lib/constants';
+import { PRIVACY_ROUTE, TESTFLIGHT_JOIN_URL } from '@/lib/constants';
 
 describe('JoinInviteScreen — with a code', () => {
   it('renders the invite headline', () => {
@@ -128,13 +128,19 @@ describe('JoinInviteScreen — named by the link', () => {
 });
 
 describe('JoinInviteScreen — standalone surface', () => {
-  it('renders no internal navigation links', () => {
+  /**
+   * The page links to exactly two places and no others: TestFlight, and the
+   * privacy policy (MYR-427) — which is here because a recipient deciding
+   * whether to install the app should be able to read what it collects first.
+   *
+   * The assertion is on the exact list rather than on a count, so a link back
+   * into the retired app cannot appear without failing this test. That was the
+   * original point of this case and it still holds; only the allowed set grew.
+   */
+  it('links only to TestFlight and the privacy policy', () => {
     const { container } = render(<JoinInviteScreen code="RBO246" />);
     const hrefs = Array.from(container.querySelectorAll('a')).map((a) => a.getAttribute('href'));
 
-    expect(hrefs).toEqual([TESTFLIGHT_JOIN_URL]);
-    for (const href of hrefs) {
-      expect(href?.startsWith('/')).toBe(false);
-    }
+    expect(hrefs).toEqual([TESTFLIGHT_JOIN_URL, PRIVACY_ROUTE]);
   });
 });
