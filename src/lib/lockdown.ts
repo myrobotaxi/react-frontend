@@ -14,7 +14,7 @@
  * No React code — imported by the proxy, which runs on the edge runtime.
  */
 
-import { JOIN_ROUTE, ROOT_ROUTE } from './constants';
+import { JOIN_ROUTE, PRIVACY_ROUTE, ROOT_ROUTE } from './constants';
 import { isInviteCodeShaped } from './invite-code';
 
 /**
@@ -65,6 +65,11 @@ export const LOCKDOWN_REDIRECT_STATUS = 302;
  *   them breaks a live third-party registration rather than a page.
  * - `/_next`, `/favicon.ico`, `/og` — build output, icon, and the link-preview
  *   card. Scrapers fetch the og image directly and must not be bounced.
+ * - `/privacy` — the privacy policy. Its URL is registered in App Store Connect
+ *   against the app record, which makes it the same kind of entry as the two
+ *   above: a live external registration rather than a page of the retired app.
+ *   Apple's review fetches it anonymously, and a reader who wants to know what
+ *   the app does with their data must be able to reach it without an invite.
  *
  * The two paths NOT in this list because they are not simple prefixes — the
  * redirect target itself and a code-shaped invite link — are handled in
@@ -83,6 +88,7 @@ export const LOCKDOWN_EXEMPT_PREFIXES = [
   '/_next',
   '/favicon.ico',
   '/og',
+  PRIVACY_ROUTE,
 ] as const;
 
 /**

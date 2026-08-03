@@ -1,3 +1,4 @@
+import { LegalFooter } from '@/components/layout/LegalFooter';
 import { Logo } from '@/components/ui/Logo';
 import { TESTFLIGHT_JOIN_URL } from '@/lib/constants';
 import { inviteHeadline, inviteSubline } from '@/lib/invite-copy';
@@ -29,9 +30,10 @@ export interface JoinInviteScreenProps {
  * `https://myrobotaxi.app/join/{CODE}` when Universal Links do not hand the
  * link to the installed iOS app.
  *
- * Deliberately standalone: no navigation, no links to any other route on this
- * (retired) site, and no network calls. The code is rendered straight from the
- * URL — this page never validates or redeems it.
+ * Deliberately standalone: no navigation and no network calls. The code is
+ * rendered straight from the URL — this page never validates or redeems it. The
+ * only route it links to on this (retired) site is the privacy policy, in the
+ * footer.
  */
 export function JoinInviteScreen({
   code,
@@ -81,6 +83,14 @@ export function JoinInviteScreen({
         <div className="mt-10">
           <JoinSteps hasCode={Boolean(code)} />
         </div>
+
+        {/*
+          The one link off this page, and the only reason it is allowed: a
+          recipient deciding whether to install the app should be able to read
+          what it collects first (MYR-427). In flow rather than anchored — this
+          page is already taller than a small phone's viewport.
+        */}
+        <LegalFooter variant="inline" />
       </div>
     </main>
   );

@@ -23,10 +23,18 @@ describe('ComingSoonScreen', () => {
     expect(screen.getByText(/coming soon/i)).toBeInTheDocument();
   });
 
-  it('has no links at all — internal or outbound', () => {
+  /**
+   * The teaser used to have no links at all. It now has exactly one — the
+   * privacy policy an app on TestFlight has to publish (MYR-427) — and the
+   * assertion is deliberately on the COUNT, so the next link to arrive here has
+   * to justify itself in this test rather than slip in.
+   */
+  it('has exactly one link, to the privacy policy', () => {
     const { container } = render(<ComingSoonScreen />);
 
-    expect(container.querySelectorAll('a')).toHaveLength(0);
+    const links = container.querySelectorAll('a');
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute('href', '/privacy');
   });
 
   it('has no navigation, buttons, or forms', () => {

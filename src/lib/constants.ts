@@ -56,6 +56,35 @@ export const TESTFLIGHT_JOIN_URL = 'https://testflight.apple.com/join/uarZRUbg';
 /** Route prefix for the public invite landing page. */
 export const JOIN_ROUTE = '/join';
 
+/**
+ * The privacy policy — a public, permanently reachable page.
+ *
+ * App Store Connect stores this URL against the app record and Apple's review
+ * fetches it, so it must answer for an anonymous visitor with no session and no
+ * invite link. That is why it appears in `LOCKDOWN_EXEMPT_PREFIXES` and in the
+ * proxy's `PUBLIC_PATHS`.
+ */
+export const PRIVACY_ROUTE = '/privacy';
+
+/**
+ * When the current text of the privacy policy took effect.
+ *
+ * Two spellings of one date: the machine-readable form for `<time dateTime>`
+ * and the rendered form. Bump BOTH whenever the policy's substance changes —
+ * the page promises the reader that this date tracks the text.
+ */
+export const PRIVACY_EFFECTIVE_DATE_ISO = '2026-08-02';
+export const PRIVACY_EFFECTIVE_DATE = 'August 2, 2026';
+
+/**
+ * The address a reader of the privacy policy writes to.
+ *
+ * There is no support@ or privacy@ mailbox yet — neither this repo, the iOS
+ * app, nor the telemetry server contains one — so the policy names the
+ * developer directly rather than inventing an address that would bounce.
+ */
+export const CONTACT_EMAIL = 'thomasnandola@gmail.com';
+
 /** The apex route — the coming-soon teaser while the web app is retired. */
 export const ROOT_ROUTE = '/';
 
