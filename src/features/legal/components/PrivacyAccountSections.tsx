@@ -6,7 +6,8 @@ import { PolicyList, PolicySection, PolicyTerm, PolicyText } from './PolicyPrimi
  * Every claim on this page was written from an audit of the three repositories
  * that make up the product (the iOS app, the Go telemetry server, and this
  * site). Where the code and an internal design document disagreed, the code
- * won — see the retention and security sections, which say so out loud.
+ * won. That rule cuts both ways: it forced the original page to admit gaps, and
+ * it is the only reason the current page is allowed to say those gaps are shut.
  */
 export function PrivacyAccountSections() {
   return (
@@ -86,7 +87,8 @@ export function PrivacyAccountSections() {
               <PolicyTerm>What is playing</PolicyTerm> — the title, artist, album or station showing
               on the car&rsquo;s screen. The app displays it; we store it as part of the car&rsquo;s
               state. It is the one piece of vehicle data that says something about you rather than
-              the car, which is why it is called out here.
+              the car, which is why it is called out here — and why nobody you share the car with
+              sees it.
             </>,
             <>
               <PolicyTerm>Service status</PolicyTerm> — whether the car is in service and when it is
@@ -94,6 +96,11 @@ export function PrivacyAccountSections() {
             </>,
           ]}
         />
+        <PolicyText>
+          The coordinates in that list — where the car is, the route it is following, and the GPS
+          trail of each drive — are stored encrypted, as described under &ldquo;How it is
+          protected.&rdquo; The drives themselves are kept for a year and then deleted.
+        </PolicyText>
         <PolicyText>
           We can also send commands to the car: lock and unlock, start and stop climate and set
           temperatures, start and stop charging and set a charge limit, open the charge port and
