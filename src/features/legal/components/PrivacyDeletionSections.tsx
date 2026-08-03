@@ -6,10 +6,9 @@ import { PolicyCallout, PolicyList, PolicySection, PolicyTerm, PolicyText } from
  * Policy sections covering account deletion, the choices a reader has, and
  * children.
  *
- * Split out of `PrivacyHandlingSections` when the security and retention
- * sections were rewritten (MYR-433, MYR-439): the two halves had grown past the
- * file-size rule, and "what we do with it while we hold it" and "how to make us
- * stop holding it" are separate questions anyway.
+ * Separate from `PrivacyHandlingSections` because "what we do with it while we
+ * hold it" and "how to make us stop holding it" are separate questions, and
+ * because one file covering both exceeds the size rule.
  *
  * The deletion list is deliberately a list of what the code does, in the order
  * it does it, including the parts that survive — a deletion section that only
@@ -52,8 +51,8 @@ export function PrivacyDeletionSections() {
             </>,
             <>
               <PolicyTerm>Rides in the other party&rsquo;s history.</PolicyTerm> If you rode in
-              someone else&rsquo;s car, that ride is their record too, and it stays. Your name is no
-              longer shown against it.
+              someone else&rsquo;s car, that ride is their record too, and it stays. Your name is not
+              shown against it.
             </>,
             <>
               <PolicyTerm>A record that a share was revoked</PolicyTerm>, including the label the
@@ -61,10 +60,11 @@ export function PrivacyDeletionSections() {
             </>,
             <>
               <PolicyTerm>Your notification preference toggles</PolicyTerm> — five on/off settings,
-              orphaned. They should be deleted with everything else and are not; we will fix that.
+              which hold no personal information and are not attached to a working account once yours
+              is gone.
             </>,
             <>
-              <PolicyTerm>Backups</PolicyTerm>, for up to about thirty days, as above.
+              <PolicyTerm>Backups</PolicyTerm>, for up to thirty days, as above.
             </>,
           ]}
         />
@@ -91,7 +91,7 @@ export function PrivacyDeletionSections() {
           <a className="text-gold hover:text-gold-light" href={`mailto:${CONTACT_EMAIL}`}>
             {CONTACT_EMAIL}
           </a>{' '}
-          and we will sort it out by hand.
+          and we will take care of it.
         </PolicyText>
       </PolicySection>
 
