@@ -30,17 +30,25 @@ export function PrivacySharingSections() {
           app you send it through can still see those names, as can anyone who can see the message
           or its link preview.
         </PolicyText>
-        <PolicyCallout title="A viewer sees almost everything about the car">
+        <PolicyCallout title="What someone you share a car with can see">
           <p>
-            Once someone accepts a share, they can see the car&rsquo;s precise location and street
-            address, where it is currently navigating to and the route it is taking, its charge and
-            range, its licence plate, its cabin settings, and what is playing on its screen — live,
-            for as long as the share lasts. The only thing withheld from a viewer that the owner can
-            see is the VIN.
+            They see the car as a car: where it is, its street address, where it is navigating to and
+            the route it is taking, the trail of the trip in progress, its charge, range and charge
+            state, its licence plate, its model, year and colour, its odometer, and whether it is
+            available for a ride — live, for as long as the share lasts.
           </p>
           <p>
-            Drive history is not shared. It stays visible to the owner only. An owner can revoke or
-            suspend any share at any time, and access stops immediately.
+            They do not see the car as your space. What is playing on its screen, the cabin
+            temperature and climate settings, the seat heaters, whether it is locked, whether the
+            trunk, frunk or charge port is open, and the VIN are all withheld, and a viewer cannot
+            send the car any command. The server decides this, not the app: withheld fields are left
+            out of what it sends, and an update made up only of withheld things is not sent at all,
+            so its timing gives nothing away either.
+          </p>
+          <p>
+            Drive history is not shared. It stays visible to the owner only — a request for it from
+            anyone else is refused outright rather than emptied out. An owner can revoke or suspend
+            any share at any time, and access stops immediately.
           </p>
         </PolicyCallout>
       </PolicySection>

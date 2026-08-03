@@ -1,5 +1,3 @@
-import { CONTACT_EMAIL } from '@/lib/constants';
-
 import {
   PolicyCallout,
   PolicyList,
@@ -10,13 +8,20 @@ import {
 
 /**
  * Policy sections covering the companies that process data on our behalf,
- * security, retention, deletion, and your choices.
+ * security, and retention.
  *
- * The security and retention sections each contain a paragraph that describes
- * something unfinished. They are deliberate: an internal design document
- * requires column encryption on data that the code has not finished migrating,
- * and specifies a drive-pruning job that is not running. Saying so is the only
- * honest option, and both notes come out when the code catches up.
+ * These three sections carried the page's two unflattering admissions when it
+ * was first published: three columns mid-migration to encryption, and drive
+ * history that was never aged out. Both pieces of work have since landed
+ * (MYR-433 and MYR-439), so both paragraphs are rewritten here rather than
+ * softened — the encryption paragraph now states what is ciphertext, and the
+ * retention list states the one-year window the pruner actually enforces.
+ *
+ * The rule the rewrite is held to is the original one: no sentence the source
+ * code does not support. That is why the security section still names, in the
+ * same breath, the things that are NOT encrypted — addresses, place names,
+ * plates, names. Coordinates being unreadable is a real and checkable claim;
+ * "your data is safe" is not, and the second sentence would swallow the first.
  */
 export function PrivacyHandlingSections() {
   return (
@@ -63,34 +68,43 @@ export function PrivacyHandlingSections() {
 
       <PolicySection id="security" title="How it is protected">
         <PolicyText>
-          Everything travels over encrypted connections. Cars connect to our server using mutual TLS,
-          so both ends prove who they are. Invite codes and notification tokens are treated as
+          Coordinates are the part of this that could follow you around, so coordinates are the part
+          we encrypt. Every one we hold is stored as AES-256-GCM ciphertext and in no other form:
+          where your car is, where it is heading and the route it is taking, the full GPS trail of
+          every drive, the pickup and dropoff of every ride, and the Home and Work you saved. The
+          same goes for the Tesla tokens that let us talk to your car and the sign-in tokens from
+          every provider we support. The unencrypted copies that used to sit beside them have been
+          deleted.
+        </PolicyText>
+        <PolicyCallout title="The key is not in the database">
+          <p>
+            It is held in our hosting platform&rsquo;s secret store and handed to the server as a
+            setting when it starts. It is never written to a table, and it is not in any backup of
+            the database. A copy of our database on its own — leaked, stolen, or lawfully demanded —
+            is therefore ciphertext with nothing to read it with.
+          </p>
+          <p>
+            So: we cannot read your drives or your car&rsquo;s location out of the database, and
+            neither can anyone who obtains it. The server decrypts a value at the moment it has to
+            send it — to your app, or to the car — and not otherwise.
+          </p>
+        </PolicyCallout>
+        <PolicyText>
+          <PolicyTerm>The honest limit of that sentence.</PolicyTerm> The words are not encrypted,
+          only the coordinates. The street address and place name we look up for a drive&rsquo;s
+          start and end, or for where a car is parked, are stored as ordinary text — as are names,
+          email addresses, licence plates, passenger phone numbers, and notification tokens. Those
+          rely on our database host&rsquo;s disk encryption and access controls rather than on a key
+          of our own. A map of your movements cannot be reconstructed from what we store; a line
+          saying a drive ended on your street can still be read.
+        </PolicyText>
+        <PolicyText>
+          Everything also travels over encrypted connections. Cars connect to our server using mutual
+          TLS, so both ends prove who they are. Invite codes and notification tokens are treated as
           credentials and kept out of our logs, and VINs appear in logs only as their last four
           characters. Coordinates, addresses, email addresses, and tokens are not written to logs at
           all.
         </PolicyText>
-        <PolicyText>
-          <PolicyTerm>
-            Ride pickup and dropoff coordinates, and your saved Home and Work coordinates, are
-            encrypted in the database
-          </PolicyTerm>{' '}
-          with AES-256-GCM, under a key held outside the database. There is no unencrypted copy of
-          them.
-        </PolicyText>
-        <PolicyCallout title="Being straight about what is not encrypted yet">
-          <p>
-            Three things are partway through the same migration: your Tesla access tokens, your
-            car&rsquo;s live coordinates, and stored route lines. Encrypted copies are being written,
-            but unencrypted copies still exist alongside them and have not been removed. Until that
-            work is finished, treat those three as protected by our database host&rsquo;s
-            disk encryption and access controls rather than by encryption of our own.
-          </p>
-          <p>
-            Names, email addresses, street addresses and place names, licence plates, passenger phone
-            numbers, and notification tokens are not separately encrypted either, and rely on the
-            same protections. We will update this page when that changes.
-          </p>
-        </PolicyCallout>
       </PolicySection>
 
       <PolicySection id="retention" title="How long we keep it">
@@ -101,13 +115,20 @@ export function PrivacyHandlingSections() {
               no history of it.
             </>,
             <>
-              <PolicyTerm>Drives and their GPS trails</PolicyTerm> — kept until you remove the car or
-              delete your account. We had intended to age these out after a year; that job is not
-              running yet, so today they are kept indefinitely. When we switch it on, this page will
-              say so.
+              <PolicyTerm>Drives and their GPS trails</PolicyTerm> — kept for one year, then deleted
+              automatically. A job runs once a day and removes every drive older than 365 days,
+              taking the trail with it. The window is fixed in the code rather than being a setting
+              somebody can quietly lengthen.
             </>,
             <>
-              <PolicyTerm>Rides</PolicyTerm> — kept as history for both the rider and the owner.
+              <PolicyTerm>What that deletion records</PolicyTerm> — one audit entry per car: how many
+              drives went, and the dates of the oldest and newest. No coordinates, no addresses, no
+              route.
+            </>,
+            <>
+              <PolicyTerm>Rides</PolicyTerm> — kept as history for both the rider and the owner. The
+              one-year sweep covers drives, not rides; a ride goes when the car is removed or when
+              one of you deletes your account.
             </>,
             <>
               <PolicyTerm>Invite codes</PolicyTerm> — stop working after seven days, or as soon as
@@ -134,93 +155,11 @@ export function PrivacyHandlingSections() {
             <>
               <PolicyTerm>Backups</PolicyTerm> — our database host keeps encrypted backups for up to
               about thirty days, with a seven-day window for point-in-time restore. Deleted data can
-              survive in a backup for that long.
+              survive in a backup for that long, and so can the unencrypted copies we removed, until
+              the backups taken before that work roll off.
             </>,
           ]}
         />
-      </PolicySection>
-
-      <PolicySection id="deletion" title="Deleting your account">
-        <PolicyText>
-          You can delete your account from inside the app, under Settings. It is not a request and
-          there is no waiting period — it happens immediately. We:
-        </PolicyText>
-        <PolicyList
-          items={[
-            'cancel any ride you have open',
-            'ask Tesla to revoke our access to your account',
-            'delete every car you added, along with its drives, trip stops, route data, and ride records',
-            'revoke every share you granted and every share granted to you',
-            'delete your notification devices and your saved places',
-            'revoke your sign-in sessions',
-            'delete your Apple sign-in link and your account itself',
-          ]}
-        />
-        <PolicyCallout title="Two steps only you can do">
-          <p>
-            If you linked a car, two things live on Tesla&rsquo;s side and there is no way for us to
-            do them for you. Remove the MyRoboTaxi key from the car&rsquo;s touchscreen, under
-            Controls → Locks, and remove our access in the Tesla app under Profile → Third-Party
-            Apps. The app shows you both at the end of deletion.
-          </p>
-        </PolicyCallout>
-        <PolicyText>What survives deletion, and why:</PolicyText>
-        <PolicyList
-          items={[
-            <>
-              <PolicyTerm>Audit log entries</PolicyTerm>, which record that something happened and
-              when. They hold no names or locations.
-            </>,
-            <>
-              <PolicyTerm>Rides in the other party&rsquo;s history.</PolicyTerm> If you rode in
-              someone else&rsquo;s car, that ride is their record too, and it stays. Your name is no
-              longer shown against it.
-            </>,
-            <>
-              <PolicyTerm>A record that a share was revoked</PolicyTerm>, including the label the
-              owner typed for the person, and a record that a VIN was removed.
-            </>,
-            <>
-              <PolicyTerm>Your notification preference toggles</PolicyTerm> — five on/off settings,
-              orphaned. They should be deleted with everything else and are not; we will fix that.
-            </>,
-            <>
-              <PolicyTerm>Backups</PolicyTerm>, for up to about thirty days, as above.
-            </>,
-          ]}
-        />
-        <PolicyText>
-          One consequence worth knowing: if an <PolicyTerm>owner</PolicyTerm> deletes their account,
-          the ride records for their cars go too — including from the ride history of everyone who
-          rode in them. A rider deleting their account does not remove anything from the
-          owner&rsquo;s history.
-        </PolicyText>
-      </PolicySection>
-
-      <PolicySection id="choices" title="Your choices">
-        <PolicyList
-          items={[
-            'Delete your account, and everything above happens.',
-            'Revoke or suspend any share you have granted, at any time, from the app.',
-            'Unlink your Tesla, or revoke our access from the Tesla app directly.',
-            'Turn off any category of notification in the app, or all of them in iOS Settings.',
-            'Turn off location access for the app in iOS Settings. Pickup will need to be chosen manually.',
-          ]}
-        />
-        <PolicyText>
-          If you want a copy of what we hold about you, or you want something corrected, email{' '}
-          <a className="text-gold hover:text-gold-light" href={`mailto:${CONTACT_EMAIL}`}>
-            {CONTACT_EMAIL}
-          </a>{' '}
-          and we will sort it out by hand.
-        </PolicyText>
-      </PolicySection>
-
-      <PolicySection id="children" title="Children">
-        <PolicyText>
-          MyRoboTaxi is not intended for children under 13, and we do not knowingly collect their
-          information. If you believe a child has given us data, email us and we will delete it.
-        </PolicyText>
       </PolicySection>
     </>
   );

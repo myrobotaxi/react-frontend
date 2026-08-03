@@ -95,10 +95,10 @@ export interface PolicyCalloutProps {
 /**
  * A statement the reader should not skim past.
  *
- * Used three times and no more: for what a viewer of a shared car can see, for
- * the parts of the database that are not column-encrypted yet, and for the two
- * deletion steps that only the account holder can perform. Each is something a
- * reader could reasonably assume the opposite of.
+ * Used three times and no more: for what a viewer of a shared car can and
+ * cannot see, for the encryption key living outside the database, and for the
+ * two deletion steps that only the account holder can perform. Each is
+ * something a reader could reasonably assume the opposite of.
  */
 export function PolicyCallout({ title, children }: PolicyCalloutProps) {
   return (

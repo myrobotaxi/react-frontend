@@ -73,8 +73,8 @@ export const PRIVACY_ROUTE = '/privacy';
  * and the rendered form. Bump BOTH whenever the policy's substance changes —
  * the page promises the reader that this date tracks the text.
  */
-export const PRIVACY_EFFECTIVE_DATE_ISO = '2026-08-02';
-export const PRIVACY_EFFECTIVE_DATE = 'August 2, 2026';
+export const PRIVACY_EFFECTIVE_DATE_ISO = '2026-08-03';
+export const PRIVACY_EFFECTIVE_DATE = 'August 3, 2026';
 
 /**
  * The address a reader of the privacy policy writes to.
