@@ -49,9 +49,10 @@ export function PrivacyHandlingSections() {
               <PolicyTerm>Vercel</PolicyTerm> — hosts this website.
             </>,
             <>
-              <PolicyTerm>Mapbox</PolicyTerm> — turns coordinates into street addresses on the
-              server. When we work out where a drive started and ended, or the address a car is
-              parked at, we send those exact coordinates to Mapbox.
+              <PolicyTerm>Mapbox</PolicyTerm> — turns coordinates into street addresses, on our
+              server and nowhere else. When we work out where a drive started and ended, where a car
+              is parked, or the address it is navigating to, we send those exact coordinates to
+              Mapbox. Neither the iOS app nor this website contacts Mapbox at all.
             </>,
             <>
               <PolicyTerm>Sentry</PolicyTerm> — error monitoring for this website, as described
@@ -59,6 +60,10 @@ export function PrivacyHandlingSections() {
             </>,
           ]}
         />
+        <PolicyText>
+          That is the whole list, and we review it with every update to this page. Adding a company
+          that handles your data means changing this section first.
+        </PolicyText>
         <PolicyText>
           We may also disclose data if the law requires it, but no such request has been made.
         </PolicyText>
@@ -78,8 +83,8 @@ export function PrivacyHandlingSections() {
             <>
               <PolicyTerm>Stored as text</PolicyTerm> — your name and email address, the street
               address and place name for a drive&rsquo;s start and end and for where a car is parked,
-              licence plates, passenger phone numbers, and notification tokens. These are protected by
-              our database host&rsquo;s disk encryption and access controls.
+              licence plates, and notification tokens. These are protected by our database
+              host&rsquo;s disk encryption and access controls.
             </>,
             <>
               <PolicyTerm>Stored as a hash</PolicyTerm> — your sign-in sessions. We hold a fingerprint
@@ -124,7 +129,8 @@ export function PrivacyHandlingSections() {
             </>,
             <>
               <PolicyTerm>Rides</PolicyTerm> — kept as history for both the rider and the owner, and
-              deleted when the car is removed or when either of you deletes your account.
+              deleted when the car is removed or when either of you deletes your account. Historic
+              ride records are subject to the same retention windows as current ones.
             </>,
             <>
               <PolicyTerm>Invite codes</PolicyTerm> — stop working after seven days, or as soon as

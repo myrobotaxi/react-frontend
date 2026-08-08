@@ -123,14 +123,13 @@ export function PrivacyAccountSections() {
               <PolicyTerm>Times and status</PolicyTerm> — when it was requested, any scheduled time,
               and each status change through to completion or cancellation.
             </>,
-            <>
-              <PolicyTerm>A passenger&rsquo;s name and phone number</PolicyTerm>, but only if you
-              fill them in when booking a ride for somebody else. We store them with the ride and
-              show them to the vehicle&rsquo;s owner, so they know who they are collecting. We do not
-              text that number — there is no SMS anywhere in the product.
-            </>,
           ]}
         />
+        <PolicyText>
+          A ride is always for the person requesting it. There is no way to book on someone
+          else&rsquo;s behalf, so we never ask for a third party&rsquo;s name or phone number, and
+          there is no SMS anywhere in the product.
+        </PolicyText>
         <PolicyText>
           Pickup and dropoff coordinates are sent to Tesla, because sending the car a destination is
           how the car learns where to go.
