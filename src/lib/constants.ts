@@ -77,13 +77,31 @@ export const PRIVACY_EFFECTIVE_DATE_ISO = '2026-08-03';
 export const PRIVACY_EFFECTIVE_DATE = 'August 3, 2026';
 
 /**
- * The address a reader of the privacy policy writes to.
+ * The two addresses the privacy policy publishes.
  *
- * There is no support@ or privacy@ mailbox yet — neither this repo, the iOS
- * app, nor the telemetry server contains one — so the policy names the
- * developer directly rather than inventing an address that would bounce.
+ * Split on purpose. A privacy policy that routes "delete my data" and "the app
+ * crashed" to one inbox makes the rights it grants harder to exercise than the
+ * support it offers, and a data request has to be answerable on a clock. No
+ * personal address appears on the page: a policy is a commitment by the
+ * company, and the mailbox it names has to outlive whoever is reading it today.
  */
-export const CONTACT_EMAIL = 'thomasnandola@gmail.com';
+export const PRIVACY_CONTACT_EMAIL = 'privacy@myrobotaxi.app';
+export const SUPPORT_CONTACT_EMAIL = 'support@myrobotaxi.app';
+
+/**
+ * The legal entity that operates MyRoboTaxi — THE ONE STRING TO EDIT when the
+ * client confirms it.
+ *
+ * Empty string means "not yet provided", and the policy's "Who we are" section
+ * renders the honest short form ("MyRoboTaxi operates from the United States").
+ * Fill this in with the registered name exactly as incorporated — for example
+ * `'MyRoboTaxi, Inc.'` — and the same sentence becomes "MyRoboTaxi is operated
+ * by MyRoboTaxi, Inc.". Nothing else needs to change, here or in the page.
+ *
+ * Deliberately NOT a placeholder like 'TBD': an unfilled slot must degrade to a
+ * true sentence, never to a visible gap on a public legal page.
+ */
+export const LEGAL_ENTITY_NAME = '';
 
 /** The apex route — the coming-soon teaser while the web app is retired. */
 export const ROOT_ROUTE = '/';

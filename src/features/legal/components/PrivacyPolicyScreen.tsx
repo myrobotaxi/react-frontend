@@ -1,8 +1,14 @@
 import { Logo } from '@/components/ui/Logo';
-import { CONTACT_EMAIL, PRIVACY_EFFECTIVE_DATE, PRIVACY_EFFECTIVE_DATE_ISO } from '@/lib/constants';
+import {
+  PRIVACY_CONTACT_EMAIL,
+  PRIVACY_EFFECTIVE_DATE,
+  PRIVACY_EFFECTIVE_DATE_ISO,
+} from '@/lib/constants';
 
 import { PolicyList, PolicySection, PolicyText } from './PolicyPrimitives';
 import { PrivacyAccountSections } from './PrivacyAccountSections';
+import { PrivacyCommitmentSections } from './PrivacyCommitmentSections';
+import { PrivacyCompanySections } from './PrivacyCompanySections';
 import { PrivacyDeletionSections } from './PrivacyDeletionSections';
 import { PrivacyHandlingSections } from './PrivacyHandlingSections';
 import { PrivacySharingSections } from './PrivacySharingSections';
@@ -67,17 +73,19 @@ export function PrivacyPolicyScreen() {
             />
             <PolicyText>
               Questions, corrections, or a request for your data:{' '}
-              <a className="text-gold hover:text-gold-light" href={`mailto:${CONTACT_EMAIL}`}>
-                {CONTACT_EMAIL}
+              <a className="text-gold hover:text-gold-light" href={`mailto:${PRIVACY_CONTACT_EMAIL}`}>
+                {PRIVACY_CONTACT_EMAIL}
               </a>
               .
             </PolicyText>
           </PolicySection>
 
+          <PrivacyCompanySections />
           <PrivacyAccountSections />
           <PrivacySharingSections />
           <PrivacyHandlingSections />
           <PrivacyDeletionSections />
+          <PrivacyCommitmentSections />
 
           <PolicySection id="changes" title="When this page changes">
             <PolicyText>
@@ -85,6 +93,12 @@ export function PrivacyPolicyScreen() {
               processing it, a different retention period — and we move the effective date at the top
               when we do. If a change materially affects you, we tell you in the app rather than
               editing this page quietly.
+            </PolicyText>
+            <PolicyText>
+              One thing to weigh the rest of this page against: it is written from a direct audit of
+              our own source code — the iOS app, the server, and this website — and we are the ones
+              who conducted it. No independent party has reviewed our systems or verified the claims
+              here. That is the honest standing of this document, and you should read it knowing so.
             </PolicyText>
             <PolicyText>
               MyRoboTaxi is an independent product and is not affiliated with or endorsed by Tesla,

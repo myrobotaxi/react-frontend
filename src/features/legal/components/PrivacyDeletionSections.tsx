@@ -1,4 +1,4 @@
-import { CONTACT_EMAIL } from '@/lib/constants';
+import { PRIVACY_CONTACT_EMAIL } from '@/lib/constants';
 
 import { PolicyCallout, PolicyList, PolicySection, PolicyTerm, PolicyText } from './PolicyPrimitives';
 
@@ -88,8 +88,8 @@ export function PrivacyDeletionSections() {
         />
         <PolicyText>
           If you want a copy of what we hold about you, or you want something corrected, email{' '}
-          <a className="text-gold hover:text-gold-light" href={`mailto:${CONTACT_EMAIL}`}>
-            {CONTACT_EMAIL}
+          <a className="text-gold hover:text-gold-light" href={`mailto:${PRIVACY_CONTACT_EMAIL}`}>
+            {PRIVACY_CONTACT_EMAIL}
           </a>{' '}
           and we will take care of it.
         </PolicyText>
@@ -98,7 +98,11 @@ export function PrivacyDeletionSections() {
       <PolicySection id="children" title="Children">
         <PolicyText>
           MyRoboTaxi is not intended for children under 13, and we do not knowingly collect their
-          information. If you believe a child has given us data, email us and we will delete it.
+          information. If you believe a child has given us data, write to{' '}
+          <a className="text-gold hover:text-gold-light" href={`mailto:${PRIVACY_CONTACT_EMAIL}`}>
+            {PRIVACY_CONTACT_EMAIL}
+          </a>{' '}
+          and we will delete it.
         </PolicyText>
       </PolicySection>
     </>

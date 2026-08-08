@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 import { PrivacyPolicyScreen } from '@/features/legal/components/PrivacyPolicyScreen';
-import { CONTACT_EMAIL, PRIVACY_EFFECTIVE_DATE_ISO } from '@/lib/constants';
+import {
+  PRIVACY_CONTACT_EMAIL,
+  PRIVACY_EFFECTIVE_DATE_ISO,
+  SUPPORT_CONTACT_EMAIL,
+} from '@/lib/constants';
 
 /**
  * The privacy policy.
@@ -31,22 +35,85 @@ describe('PrivacyPolicyScreen', () => {
     expect(time).toHaveAttribute('dateTime', PRIVACY_EFFECTIVE_DATE_ISO);
   });
 
-  it('gives a contact address that is a real mailbox', () => {
-    render(<PrivacyPolicyScreen />);
+  /**
+   * Both mailboxes, and neither of them a person.
+   *
+   * A privacy policy naming a developer's personal address makes the promises
+   * on it expire with that developer's inbox. The split matters too: a reader
+   * exercising a right should not have to guess whether the support queue is
+   * the right queue.
+   */
+  it('publishes a company mailbox for data requests and another for support', () => {
+    const { container } = render(<PrivacyPolicyScreen />);
 
-    const [link] = screen.getAllByRole('link', { name: CONTACT_EMAIL });
-    expect(link).toHaveAttribute('href', `mailto:${CONTACT_EMAIL}`);
+    const [privacyLink] = screen.getAllByRole('link', { name: PRIVACY_CONTACT_EMAIL });
+    expect(privacyLink).toHaveAttribute('href', `mailto:${PRIVACY_CONTACT_EMAIL}`);
+
+    const [supportLink] = screen.getAllByRole('link', { name: SUPPORT_CONTACT_EMAIL });
+    expect(supportLink).toHaveAttribute('href', `mailto:${SUPPORT_CONTACT_EMAIL}`);
+
+    // No personal address anywhere on a public legal page.
+    expect(container.textContent).not.toMatch(/@gmail\.com/i);
   });
 
+  it('says who we are and where the data is held', () => {
+    const { container } = render(<PrivacyPolicyScreen />);
+
+    expect(container.textContent).toMatch(/MyRoboTaxi[\s\S]{0,80}operates from the United States/i);
+    expect(container.textContent).toMatch(/hosted in the United States/i);
+    // The consequence of that location, for the readers it actually costs
+    // something — stated on the page rather than left to be inferred.
+    expect(container.textContent).toMatch(/transferred to the United States/i);
+  });
+
+  /**
+   * The processor list.
+   *
+   * Mapbox stays, and the reason is worth writing down because it was very
+   * nearly removed. It is genuinely dead on the two surfaces people look at:
+   * the web app's `src/components/map/*` and `src/lib/geocode.ts` are
+   * unreachable behind the lockdown in `src/proxy.ts`, and the iOS app replaced
+   * Mapbox GL with MapKit outright. But the policy's claim is about the SERVER,
+   * and there it is live — `telemetry/internal/geocode/geocode.go` calls
+   * api.mapbox.com for drive start and end, parked location, and navigation
+   * destination, wired whenever `MAPBOX_TOKEN` is set, which it is on the
+   * production Fly app.
+   *
+   * Dropping the name would have concealed a processor that receives precise
+   * user coordinates — the one omission on this page that could not be
+   * characterised as a wording choice.
+   */
   it('names every company that processes data', () => {
     const { container } = render(<PrivacyPolicyScreen />);
 
-    // Mapbox and Sentry are the two a reader would not guess, and Mapbox
-    // receives precise coordinates — omitting either would make the list a
-    // misrepresentation rather than an omission.
-    for (const processor of ['Apple', 'Tesla', 'Fly.io', 'Supabase', 'Vercel', 'Mapbox', 'Sentry']) {
+    for (const processor of [
+      'Apple',
+      'Tesla',
+      'Fly.io',
+      'Supabase',
+      'Vercel',
+      'Mapbox',
+      'Sentry',
+    ]) {
       expect(container.textContent).toContain(processor);
     }
+  });
+
+  /**
+   * Where the Mapbox geocoding happens, pinned.
+   *
+   * "We send coordinates to Mapbox" with no boundary invites the reader to
+   * assume their phone is doing it. It is not: the app and this website never
+   * contact Mapbox, and saying so is the difference between disclosing a
+   * processor and alarming people about the wrong one.
+   */
+  it('confines the Mapbox geocoding to the server', () => {
+    const { container } = render(<PrivacyPolicyScreen />);
+
+    expect(container.textContent).toMatch(/on our\s+server and nowhere else/i);
+    expect(container.textContent).toMatch(
+      /Neither the iOS app nor this website contacts Mapbox/i,
+    );
   });
 
   /**
@@ -152,5 +219,51 @@ describe('PrivacyPolicyScreen', () => {
     const { container } = render(<PrivacyPolicyScreen />);
 
     expect(container.textContent).toMatch(/do not sell your personal information/i);
+    expect(container.textContent).toMatch(/never sell personal data/i);
+  });
+
+  /**
+   * The breach commitment, pinned to its number.
+   *
+   * "Without undue delay" on its own is the phrasing that lets a notice arrive
+   * whenever it arrives. The 72 hours is what makes it a commitment, so the
+   * number is what the test guards.
+   */
+  it('commits to a 72-hour breach notification', () => {
+    const { container } = render(<PrivacyPolicyScreen />);
+
+    expect(container.textContent).toMatch(/without undue delay/i);
+    expect(container.textContent).toMatch(/within 72 hours of confirming it/i);
+  });
+
+  /**
+   * Change of control. All three halves: the protections travel with the data,
+   * the notice comes first, and a shutdown ends in deletion rather than in an
+   * unattended database.
+   */
+  it('commits to what happens to data if the company changes hands', () => {
+    const { container } = render(<PrivacyPolicyScreen />);
+
+    expect(container.textContent).toMatch(/at least as strong as the ones on this page/i);
+    expect(container.textContent).toMatch(/tell you before that happens/i);
+    expect(container.textContent).toMatch(/deleted within thirty days of the service ending/i);
+  });
+
+  /**
+   * Booking a ride for someone else is not a feature.
+   *
+   * It was removed from the rider surface; only deprecated wire fields remain,
+   * with no UI that writes them. A policy describing the collection of a
+   * passenger's name and phone number would be describing a product that does
+   * not exist — the rarer failure mode of over-disclosure, and still a false
+   * statement about what we collect.
+   */
+  it('does not describe collecting details for a third-party passenger', () => {
+    const { container } = render(<PrivacyPolicyScreen />);
+    const text = container.textContent ?? '';
+
+    expect(text).not.toMatch(/passenger['’]?s? (name|phone)/i);
+    expect(text).not.toMatch(/passenger phone numbers/i);
+    expect(text).not.toMatch(/booking a ride for (somebody|someone) else/i);
   });
 });
