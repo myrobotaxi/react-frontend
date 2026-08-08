@@ -53,6 +53,39 @@ export const SITE_ORIGIN = 'https://myrobotaxi.app';
  */
 export const TESTFLIGHT_JOIN_URL = 'https://testflight.apple.com/join/uarZRUbg';
 
+/**
+ * The app's numeric App Store ID — THE ONE STRING TO EDIT to switch on Safari's
+ * smart app banner (MYR-453).
+ *
+ * Empty string means "no App Store record exists yet", which is the truth today:
+ * MyRoboTaxi ships to a Friends & Family TestFlight group and the App Store
+ * Connect app record in `RELEASING.md`'s checklist has never been created, so
+ * there is no numeric id to quote. It is NOT a placeholder to be filled with
+ * something plausible — `app-id` is the one part of `apple-itunes-app` Safari
+ * treats as mandatory, and it validates the value against the store. A guessed
+ * or invented id renders a banner that either does not appear or offers a
+ * download that 404s, on the one surface an invite recipient has no way to
+ * recover from.
+ *
+ * So the banner is BUILT AND DORMANT: `buildJoinMetadata` emits the tag only
+ * when this holds a value, and emits nothing at all while it does not, rather
+ * than shipping markup that is inert at best. Once the app record exists, read
+ * "Apple ID" off App Store Connect ▸ App Information, paste the digits here, and
+ * the tag starts appearing on `/join/{CODE}` with the code as its
+ * `app-argument`. Nothing else needs to change — `join-metadata.ts` documents
+ * what that argument is and why it is the scheme URL. That flip was exercised
+ * once against a dev server before this landed, to be sure the dormant path is
+ * a working feature and not an untested branch: with an id set, the page emits
+ * `<meta name="apple-itunes-app" content="app-id=…, app-argument=myrobotaxi://join/RBO246">`.
+ *
+ * Worth knowing before switching it on: the banner is a SAFARI feature. It does
+ * nothing in the Telegram/WhatsApp webviews that made MYR-453 a bug, and Safari
+ * with the app installed already opens the app via the Universal Link without
+ * any banner. Its real value is the not-installed path, which is exactly the
+ * path that needs the store listing this constant is waiting on.
+ */
+export const APPLE_APP_STORE_ID = '';
+
 /** Route prefix for the public invite landing page. */
 export const JOIN_ROUTE = '/join';
 
