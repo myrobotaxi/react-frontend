@@ -92,6 +92,48 @@ test.describe('invite landing page — a signed link', () => {
     );
   });
 
+  /**
+   * MYR-453 — the app-open CTA, on the real rendered route rather than on the
+   * component in isolation. Every link this suite renders is a SIGNED link
+   * carrying `?k=`, and often `?from=`/`?to=` as well, so this is also the case
+   * that pins where the code comes from: the PATH. Nothing in the query
+   * contributes to the in-app URL, and the iOS parser ignores the query too.
+   */
+  test('offers an app-open CTA carrying the code from the path', async ({ page }) => {
+    await page.goto(signedJoinLink('RBO246', { from: 'Alex', to: 'Mira' }));
+
+    await expect(page.getByRole('link', { name: /open in the app/i })).toHaveAttribute(
+      'href',
+      'myrobotaxi://join/RBO246',
+    );
+  });
+
+  /**
+   * A different code in the path must produce a different in-app URL — the CTA
+   * is built per page, not from a constant somebody could freeze.
+   */
+  test('builds the in-app URL from whichever code the path carried', async ({ page }) => {
+    await page.goto(signedJoinLink('ZZZZZZ'));
+
+    await expect(page.getByRole('link', { name: /open in the app/i })).toHaveAttribute(
+      'href',
+      'myrobotaxi://join/ZZZZZZ',
+    );
+  });
+
+  /**
+   * The smart app banner is built but dormant: the app has no App Store record
+   * yet (TestFlight only) and `app-id` is the one attribute Safari requires, so
+   * `join-metadata.ts` emits nothing rather than an inert tag. This is what
+   * ships today; the unit suite covers the shape it will take when the id
+   * exists.
+   */
+  test('emits no smart app banner while the app has no App Store id', async ({ page }) => {
+    await page.goto(signedJoinLink('RBO246'));
+
+    await expect(page.locator('meta[name="apple-itunes-app"]')).toHaveCount(0);
+  });
+
   test('is reachable without a session or beta cookie', async ({ page }) => {
     const response = await page.goto(signedJoinLink('RBO246'));
 
@@ -100,19 +142,25 @@ test.describe('invite landing page — a signed link', () => {
   });
 
   /**
-   * The page links off the site to TestFlight, and to exactly one route on it:
-   * the privacy policy (MYR-427), which a recipient deciding whether to install
-   * the app should be able to read first. Nothing else — a link back into the
-   * retired app would still fail this.
+   * The page links off the site to the installed app and to TestFlight, and to
+   * exactly one route on it: the privacy policy (MYR-427), which a recipient
+   * deciding whether to install the app should be able to read first. Nothing
+   * else — a link back into the retired app would still fail this.
    */
-  test('is standalone — TestFlight and the privacy policy, nothing else', async ({ page }) => {
+  test('is standalone — the app, TestFlight and the privacy policy, nothing else', async ({
+    page,
+  }) => {
     await page.goto(signedJoinLink('RBO246'));
 
     const hrefs = await page.locator('a').evaluateAll((links) =>
       links.map((link) => link.getAttribute('href')),
     );
 
-    expect(hrefs).toEqual(['https://testflight.apple.com/join/uarZRUbg', '/privacy']);
+    expect(hrefs).toEqual([
+      'myrobotaxi://join/RBO246',
+      'https://testflight.apple.com/join/uarZRUbg',
+      '/privacy',
+    ]);
   });
 
   test('the privacy policy it links to actually serves', async ({ page }) => {

@@ -72,6 +72,14 @@ const verifyLink = cache(
  * below redirects, and that is the response a scraper actually receives. Next
  * may still resolve metadata for a request that is about to be redirected, and
  * this is what it resolves to.
+ *
+ * The smart-banner `app-argument` (MYR-453) is NOT gated on verification the way
+ * the names are, because it is not the same kind of input: the names are
+ * attacker-supplied text headed for a cached preview card, while the code is a
+ * path segment the lockdown has already shape-checked and the body renders
+ * regardless. A rejected link redirects before any banner could be shown, so the
+ * distinction is invisible in practice; it is spelled out here so nobody reads
+ * the asymmetry as an oversight.
  */
 export async function generateMetadata({
   params,
@@ -82,7 +90,15 @@ export async function generateMetadata({
 
   const verified = await verifyLink(code, k, from, to);
 
-  return buildJoinMetadata(verified?.inviterName ?? null, verified?.recipientName ?? null);
+  // The code comes from the PATH, and only from the path — the same source the
+  // body renders from, sanitized by the same function. The smart app banner
+  // (MYR-453) is the one head tag that carries it, and it must open the app on
+  // the invite the visitor is actually looking at.
+  return buildJoinMetadata(
+    verified?.inviterName ?? null,
+    verified?.recipientName ?? null,
+    sanitizeInviteCode(code),
+  );
 }
 
 /**
