@@ -27,28 +27,27 @@ export function PrivacySharingSections() {
           in the web address itself. We deliberately put only a first name there — the first word,
           letters only, cut off at twenty characters — because the link travels by text message, and
           a link that arrives by text should not carry somebody&rsquo;s surname. Whatever messaging
-          app you send it through can still see those names, as can anyone who can see the message
-          or its link preview.
+          app you send it through can see those names, as can anyone who can see the message or its
+          link preview.
         </PolicyText>
         <PolicyCallout title="What someone you share a car with can see">
           <p>
-            They see the car as a car: where it is, its street address, where it is navigating to and
-            the route it is taking, the trail of the trip in progress, its charge, range and charge
+            A viewer sees where the car is and its street address, where it is navigating to and the
+            route it is taking, the trail of the trip in progress, its charge, range and charge
             state, its licence plate, its model, year and colour, its odometer, and whether it is
             available for a ride — live, for as long as the share lasts.
           </p>
           <p>
-            They do not see the car as your space. What is playing on its screen, the cabin
-            temperature and climate settings, the seat heaters, whether it is locked, whether the
-            trunk, frunk or charge port is open, and the VIN are all withheld, and a viewer cannot
-            send the car any command. The server decides this, not the app: withheld fields are left
-            out of what it sends, and an update made up only of withheld things is not sent at all,
-            so its timing gives nothing away either.
+            A viewer does not see what is playing on its screen, the cabin temperature or climate
+            settings, the seat heaters, whether the car is locked, whether the trunk, frunk or charge
+            port is open, or the VIN, and cannot send the car any command. Our server enforces this
+            rather than the app: withheld fields are never sent, and an update consisting only of
+            withheld fields is not sent at all, so its timing reveals nothing either.
           </p>
           <p>
-            Drive history is not shared. It stays visible to the owner only — a request for it from
-            anyone else is refused outright rather than emptied out. An owner can revoke or suspend
-            any share at any time, and access stops immediately.
+            Drive history is not shared. It is visible to the owner alone, and a request for it from
+            anyone else is refused. An owner can revoke or suspend any share at any time, and access
+            stops immediately.
           </p>
         </PolicyCallout>
       </PolicySection>
@@ -108,7 +107,7 @@ export function PrivacySharingSections() {
             </>,
             <>
               <PolicyTerm>Last known vehicle positions</PolicyTerm> — a small cache, up to twelve
-              cars and thirty days, so the map opens where the car was instead of nowhere.
+              cars and thirty days, so the map opens where the car was last seen.
             </>,
             <>
               <PolicyTerm>Your view preference</PolicyTerm> — whether you last used owner or rider
@@ -121,9 +120,8 @@ export function PrivacySharingSections() {
           ]}
         />
         <PolicyText>
-          The one thing to be clear about: the recent-destinations list itself is never uploaded, but
-          if you pick one of those places and book a ride to it, that single destination is sent as
-          part of the ride request, like any other.
+          The recent-destinations list is never uploaded. If you choose one of those places and book
+          a ride to it, that single destination is sent as part of the ride request, like any other.
         </PolicyText>
       </PolicySection>
 
@@ -142,8 +140,8 @@ export function PrivacySharingSections() {
 
       <PolicySection id="website" title="This website">
         <PolicyText>
-          myrobotaxi.app currently serves three things: a coming-soon page, this policy, and the
-          invite landing page at <code className="text-text-primary">/join/&#123;CODE&#125;</code>.
+          myrobotaxi.app serves three pages: a coming-soon page, this policy, and the invite landing
+          page at <code className="text-text-primary">/join/&#123;CODE&#125;</code>.
         </PolicyText>
         <PolicyList
           items={[

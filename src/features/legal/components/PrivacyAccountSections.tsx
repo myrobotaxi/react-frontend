@@ -3,11 +3,11 @@ import { PolicyList, PolicySection, PolicyTerm, PolicyText } from './PolicyPrimi
 /**
  * Policy sections covering the account, the linked Tesla, and rides.
  *
- * Every claim on this page was written from an audit of the three repositories
+ * Every claim on this page is written from an audit of the three repositories
  * that make up the product (the iOS app, the Go telemetry server, and this
- * site). Where the code and an internal design document disagreed, the code
- * won. That rule cuts both ways: it forced the original page to admit gaps, and
- * it is the only reason the current page is allowed to say those gaps are shut.
+ * site). Where the code and an internal design document disagree, the code
+ * wins — a policy describes the system that runs, not the one that was
+ * specified.
  */
 export function PrivacyAccountSections() {
   return (
@@ -87,8 +87,7 @@ export function PrivacyAccountSections() {
               <PolicyTerm>What is playing</PolicyTerm> — the title, artist, album or station showing
               on the car&rsquo;s screen. The app displays it; we store it as part of the car&rsquo;s
               state. It is the one piece of vehicle data that says something about you rather than
-              the car, which is why it is called out here — and why nobody you share the car with
-              sees it.
+              the car, and nobody you share the car with sees it.
             </>,
             <>
               <PolicyTerm>Service status</PolicyTerm> — whether the car is in service and when it is
@@ -96,11 +95,6 @@ export function PrivacyAccountSections() {
             </>,
           ]}
         />
-        <PolicyText>
-          The coordinates in that list — where the car is, the route it is following, and the GPS
-          trail of each drive — are stored encrypted, as described under &ldquo;How it is
-          protected.&rdquo; The drives themselves are kept for a year and then deleted.
-        </PolicyText>
         <PolicyText>
           We can also send commands to the car: lock and unlock, start and stop climate and set
           temperatures, start and stop charging and set a charge limit, open the charge port and
@@ -129,14 +123,13 @@ export function PrivacyAccountSections() {
               <PolicyTerm>Times and status</PolicyTerm> — when it was requested, any scheduled time,
               and each status change through to completion or cancellation.
             </>,
-            <>
-              <PolicyTerm>A passenger&rsquo;s name and phone number</PolicyTerm>, but only if you
-              fill them in when booking a ride for somebody else. We store them with the ride and
-              show them to the vehicle&rsquo;s owner, so they know who they are collecting. We do not
-              text that number — there is no SMS anywhere in the product.
-            </>,
           ]}
         />
+        <PolicyText>
+          A ride is always for the person requesting it. There is no way to book on someone
+          else&rsquo;s behalf, so we never ask for a third party&rsquo;s name or phone number, and
+          there is no SMS anywhere in the product.
+        </PolicyText>
         <PolicyText>
           Pickup and dropoff coordinates are sent to Tesla, because sending the car a destination is
           how the car learns where to go.
