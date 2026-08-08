@@ -1,9 +1,9 @@
 import { LegalFooter } from '@/components/layout/LegalFooter';
 import { Logo } from '@/components/ui/Logo';
-import { TESTFLIGHT_JOIN_URL } from '@/lib/constants';
 import { inviteHeadline, inviteSubline } from '@/lib/invite-copy';
 
 import { InviteCodeBlock } from './InviteCodeBlock';
+import { JoinAppCTA } from './JoinAppCTA';
 import { JoinSteps } from './JoinSteps';
 
 /** Props for the JoinInviteScreen component. */
@@ -72,13 +72,14 @@ export function JoinInviteScreen({
           </div>
         )}
 
-        <a
-          href={TESTFLIGHT_JOIN_URL}
-          className="mt-8 flex w-full items-center justify-center rounded-xl bg-gold px-6 py-4 text-base font-semibold text-bg-primary transition-colors hover:bg-gold-light"
-          rel="noreferrer noopener external"
-        >
-          Get the app on TestFlight
-        </a>
+        {/*
+          MYR-453 — "Open in the app" first, TestFlight second. This page is
+          where an invite lands when iOS declines to hand the Universal Link to
+          the installed app (every third-party in-app browser), so its primary
+          action has to be the one that reaches an app the visitor may already
+          have. Sending that person to an installer was the reported bug.
+        */}
+        <JoinAppCTA code={code} />
 
         <div className="mt-10">
           <JoinSteps hasCode={Boolean(code)} />

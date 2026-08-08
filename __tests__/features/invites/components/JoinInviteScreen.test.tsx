@@ -26,6 +26,56 @@ describe('JoinInviteScreen — with a code', () => {
     expect(link).toHaveAttribute('href', TESTFLIGHT_JOIN_URL);
   });
 
+  /**
+   * MYR-453 — the button this page did not have, and the reason the ticket
+   * exists. A recipient who tapped the invite inside Telegram's webview gets no
+   * Universal Link, lands here, and before this had one app-facing button:
+   * TestFlight, carrying no code. Somebody who already had the app was sent to
+   * an installer and lost their invite.
+   */
+  it('offers an app-open CTA carrying the exact code from the page', () => {
+    render(<JoinInviteScreen code="RBO246" />);
+    const link = screen.getByRole('link', { name: /open in the app/i });
+
+    expect(link).toHaveAttribute('href', 'myrobotaxi://join/RBO246');
+  });
+
+  /**
+   * Order is the fix, not just presence. The visitor most likely to be on this
+   * page in the first place is one whose phone declined to open the app on its
+   * own — the app-open path has to be the one they read first.
+   */
+  it('puts the app-open CTA before the TestFlight one', () => {
+    const { container } = render(<JoinInviteScreen code="RBO246" />);
+    const labels = Array.from(container.querySelectorAll('a')).map((a) => a.textContent);
+
+    expect(labels.indexOf('Open in the app')).toBeLessThan(
+      labels.indexOf('Get the app on TestFlight'),
+    );
+  });
+
+  /**
+   * The graceful-degradation contract, asserted as the ABSENCE of machinery.
+   * There is no timer, no `visibilitychange` listener, no scripted redirect —
+   * the fallback is a second labelled link the visitor can tap when the first
+   * one goes nowhere. If a future change reintroduces the "did the app open?"
+   * heuristic, this page stops being renderable on the server and this fails.
+   */
+  it('needs no client JavaScript to fall back — TestFlight stays a plain link', () => {
+    render(<JoinInviteScreen code="RBO246" />);
+    const fallback = screen.getByRole('link', { name: /get the app on testflight/i });
+
+    expect(fallback).toHaveAttribute('href', TESTFLIGHT_JOIN_URL);
+    expect(screen.getByText(/don't have the app yet\?/i)).toBeInTheDocument();
+  });
+
+  /** A code the page could not sanitize yields no button, not a dead one. */
+  it('renders no app-open CTA for a code it cannot build a link from', () => {
+    render(<JoinInviteScreen code="not-a-code" />);
+
+    expect(screen.queryByRole('link', { name: /open in the app/i })).toBeNull();
+  });
+
   it('suppresses the referrer on the outbound link so the code does not leak', () => {
     render(<JoinInviteScreen code="RBO246" />);
     const link = screen.getByRole('link', { name: /get the app on testflight/i });
@@ -58,6 +108,18 @@ describe('JoinInviteScreen — without a code', () => {
     expect(
       screen.getByRole('link', { name: /get the app on testflight/i }),
     ).toHaveAttribute('href', TESTFLIGHT_JOIN_URL);
+  });
+
+  /**
+   * `myrobotaxi://join/` with no code parses to nothing on the app side, so this
+   * arm is unchanged by MYR-453: one button, still the gold primary, exactly as
+   * the codeless route rendered before.
+   */
+  it('offers no app-open CTA — there is no code to open the app on', () => {
+    render(<JoinInviteScreen code={null} />);
+
+    expect(screen.queryByRole('link', { name: /open in the app/i })).toBeNull();
+    expect(screen.queryByText(/don't have the app yet\?/i)).toBeNull();
   });
 
   it('falls back to generic step copy', () => {
@@ -100,12 +162,16 @@ describe('JoinInviteScreen — named by the link', () => {
     }
   });
 
-  it('shows the code and the TestFlight route exactly as before — only the copy changes', () => {
+  it('shows the code and both app routes exactly as before — only the copy changes', () => {
     render(<JoinInviteScreen code="RBO246" inviterName="Alex" recipientName="Mira" />);
     expect(screen.getByTestId('invite-code')).toHaveTextContent('RBO246');
     expect(screen.getByRole('link', { name: /get the app on testflight/i })).toHaveAttribute(
       'href',
       TESTFLIGHT_JOIN_URL,
+    );
+    expect(screen.getByRole('link', { name: /open in the app/i })).toHaveAttribute(
+      'href',
+      'myrobotaxi://join/RBO246',
     );
   });
 
@@ -129,16 +195,27 @@ describe('JoinInviteScreen — named by the link', () => {
 
 describe('JoinInviteScreen — standalone surface', () => {
   /**
-   * The page links to exactly two places and no others: TestFlight, and the
-   * privacy policy (MYR-427) — which is here because a recipient deciding
-   * whether to install the app should be able to read what it collects first.
+   * The page links to exactly three places and no others: the installed app,
+   * TestFlight, and the privacy policy (MYR-427) — which is here because a
+   * recipient deciding whether to install the app should be able to read what it
+   * collects first.
    *
    * The assertion is on the exact list rather than on a count, so a link back
    * into the retired app cannot appear without failing this test. That was the
-   * original point of this case and it still holds; only the allowed set grew.
+   * original point of this case and it still holds; only the allowed set grew —
+   * MYR-453 added the first entry, and the in-app URL is the only new
+   * destination it is allowed to have added.
    */
-  it('links only to TestFlight and the privacy policy', () => {
+  it('links only to the app, TestFlight and the privacy policy', () => {
     const { container } = render(<JoinInviteScreen code="RBO246" />);
+    const hrefs = Array.from(container.querySelectorAll('a')).map((a) => a.getAttribute('href'));
+
+    expect(hrefs).toEqual(['myrobotaxi://join/RBO246', TESTFLIGHT_JOIN_URL, PRIVACY_ROUTE]);
+  });
+
+  /** The codeless arm keeps the original two-link surface untouched. */
+  it('links only to TestFlight and the privacy policy without a code', () => {
+    const { container } = render(<JoinInviteScreen code={null} />);
     const hrefs = Array.from(container.querySelectorAll('a')).map((a) => a.getAttribute('href'));
 
     expect(hrefs).toEqual([TESTFLIGHT_JOIN_URL, PRIVACY_ROUTE]);
