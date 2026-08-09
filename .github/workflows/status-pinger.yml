@@ -1,0 +1,26 @@
+# MYR-510 — the status prober's real cadence.
+#
+# Vercel Hobby caps crons at one run per day, so the vercel.json cron is a
+# daily backstop and THIS schedule is the working prober: every 5 minutes,
+# from GitHub's infrastructure — a second failure domain independent of both
+# Vercel and Fly. GitHub schedules are best-effort (typically 5-15 min under
+# load), which the page's 10-minute no-data staleness rule already tolerates
+# honestly: a starved pinger renders "No data", never a false Operational.
+name: status-pinger
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger the status probe
+        run: |
+          code=$(curl -s -o /tmp/out -w "%{http_code}" -m 60 \
+            -H "Authorization: Bearer ${{ secrets.STATUS_CRON_SECRET }}" \
+            https://myrobotaxi.app/api/cron/status)
+          cat /tmp/out
+          # 200 = probed; 429 = a concurrent run already probed. Both fine.
+          [ "$code" = "200" ] || [ "$code" = "429" ] || exit 1
