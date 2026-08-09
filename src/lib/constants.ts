@@ -100,6 +100,37 @@ export const JOIN_ROUTE = '/join';
 export const PRIVACY_ROUTE = '/privacy';
 
 /**
+ * The public service status page (MYR-510) — public for the same class of
+ * reason as the privacy policy, but a sharper one.
+ *
+ * A status page exists to be readable by someone who cannot get into the
+ * product. Putting it behind the lockdown, the beta gate or a session would
+ * mean it went dark precisely when it is the only page anyone wants, so it
+ * appears in all three allow-lists: `LOCKDOWN_EXEMPT_PREFIXES`,
+ * `PUBLIC_PATHS`, and `BETA_EXCLUDED_PATHS`.
+ *
+ * A path rather than a subdomain for now. `status.myrobotaxi.app` can be mapped
+ * onto this route later without touching anything here — but a subdomain served
+ * by the same deployment would not be any more independent than this is, and
+ * the honest description of that limit is on the page itself.
+ */
+export const STATUS_ROUTE = '/status';
+
+/**
+ * The cron endpoint that drives the status page's prober.
+ *
+ * In all three allow-lists for the same reason `/api/auth` is: an outside
+ * system (Vercel Cron) is registered against this exact URL, and every gate in
+ * `proxy.ts` answers an unauthenticated caller with a redirect — which would
+ * stop the monitoring silently rather than break a visible page.
+ *
+ * Being past those gates is not the same as being open. The handler's first act
+ * is to check `Authorization: Bearer $CRON_SECRET` and answer 401 without it,
+ * which is the only credential Vercel Cron can present.
+ */
+export const STATUS_CRON_ROUTE = '/api/cron/status';
+
+/**
  * When the current text of the privacy policy took effect.
  *
  * Two spellings of one date: the machine-readable form for `<time dateTime>`

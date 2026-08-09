@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 
 import { isBetaExcludedPath } from '@/lib/beta-gate';
-import { PRIVACY_ROUTE } from '@/lib/constants';
+import { PRIVACY_ROUTE, STATUS_CRON_ROUTE, STATUS_ROUTE } from '@/lib/constants';
 import {
   isLockdownEnabled,
   isLockdownExempt,
@@ -33,6 +33,10 @@ describe('isLockdownExempt — reachable', () => {
     // The privacy policy — registered in App Store Connect, fetched by Apple's
     // review with no session and no invite link (MYR-427).
     '/privacy',
+    // The public status page and the cron job that feeds it (MYR-510). Both
+    // have to answer while the product does not.
+    '/status',
+    '/api/cron/status',
   ];
 
   it.each(exempt)('keeps %s reachable', (pathname) => {
@@ -178,6 +182,8 @@ describe('lockdown configuration', () => {
       '/favicon.ico',
       '/og',
       '/privacy',
+      '/status',
+      '/api/cron/status',
     ]);
   });
 
@@ -191,5 +197,21 @@ describe('lockdown configuration', () => {
   it('is public to the auth gate and the beta gate as well', () => {
     expect(isPublicPath(PRIVACY_ROUTE)).toBe(true);
     expect(isBetaExcludedPath(PRIVACY_ROUTE)).toBe(true);
+  });
+
+  /**
+   * Same three-gate argument for the status page, and the stakes are higher:
+   * every gate answers an anonymous caller with a redirect, so a status page
+   * missing from any one of these lists is a status page that goes dark for
+   * everyone outside the team — or, for the cron URL, monitoring that stops
+   * without anyone noticing. The handler's own CRON_SECRET check is what keeps
+   * the second one from being open.
+   */
+  it('keeps the status page and its cron past all three gates', () => {
+    for (const route of [STATUS_ROUTE, STATUS_CRON_ROUTE]) {
+      expect(isLockdownExempt(route)).toBe(true);
+      expect(isPublicPath(route)).toBe(true);
+      expect(isBetaExcludedPath(route)).toBe(true);
+    }
   });
 });

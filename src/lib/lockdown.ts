@@ -14,7 +14,13 @@
  * No React code — imported by the proxy, which runs on the edge runtime.
  */
 
-import { JOIN_ROUTE, PRIVACY_ROUTE, ROOT_ROUTE } from './constants';
+import {
+  JOIN_ROUTE,
+  PRIVACY_ROUTE,
+  ROOT_ROUTE,
+  STATUS_CRON_ROUTE,
+  STATUS_ROUTE,
+} from './constants';
 import { isInviteCodeShaped } from './invite-code';
 
 /**
@@ -70,6 +76,12 @@ export const LOCKDOWN_REDIRECT_STATUS = 302;
  *   above: a live external registration rather than a page of the retired app.
  *   Apple's review fetches it anonymously, and a reader who wants to know what
  *   the app does with their data must be able to reach it without an invite.
+ * - `/status` and `/api/cron/status` — the public status page and the cron job
+ *   that feeds it (MYR-510). The page's whole purpose is to answer someone who
+ *   cannot get into the product, which a redirect to the teaser defeats; the
+ *   cron URL is registered with Vercel's scheduler, so bouncing it would stop
+ *   the monitoring without breaking anything a person would notice. The cron
+ *   handler checks `CRON_SECRET` itself.
  *
  * The two paths NOT in this list because they are not simple prefixes — the
  * redirect target itself and a code-shaped invite link — are handled in
@@ -89,6 +101,8 @@ export const LOCKDOWN_EXEMPT_PREFIXES = [
   '/favicon.ico',
   '/og',
   PRIVACY_ROUTE,
+  STATUS_ROUTE,
+  STATUS_CRON_ROUTE,
 ] as const;
 
 /**

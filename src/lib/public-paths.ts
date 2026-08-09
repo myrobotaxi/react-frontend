@@ -13,7 +13,7 @@
  * No React code — imported by the proxy, which runs on the edge runtime.
  */
 
-import { JOIN_ROUTE, PRIVACY_ROUTE } from './constants';
+import { JOIN_ROUTE, PRIVACY_ROUTE, STATUS_CRON_ROUTE, STATUS_ROUTE } from './constants';
 
 /**
  * Prefixes served without a session.
@@ -22,6 +22,12 @@ import { JOIN_ROUTE, PRIVACY_ROUTE } from './constants';
  * have no account and never will — App Store review among them. Its URL is
  * registered against the app record in App Store Connect, so a redirect to
  * /signin here is a failed review, not a broken page.
+ *
+ * `/status` is public for a sharper version of the same reason: a status page
+ * that requires a session is unreadable in exactly the situation it exists for.
+ * `/api/cron/status` is here because Vercel Cron cannot hold a session either —
+ * it presents `Authorization: Bearer $CRON_SECRET`, which the handler checks
+ * before it does anything. Being past this gate is not the same as being open.
  */
 export const PUBLIC_PATHS = [
   '/signin',
@@ -29,6 +35,8 @@ export const PUBLIC_PATHS = [
   '/beta',
   JOIN_ROUTE,
   PRIVACY_ROUTE,
+  STATUS_ROUTE,
+  STATUS_CRON_ROUTE,
   '/api/auth',
   '/.well-known',
 ] as const;
