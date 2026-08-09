@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/status",
+      "schedule": "* * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/.well-known/appspecific/com.tesla.3p.public-key.pem",
