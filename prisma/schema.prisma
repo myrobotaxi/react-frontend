@@ -270,3 +270,51 @@ model Settings {
   updatedAt               DateTime  @updatedAt
   user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// ─── Service status (MYR-510) ────────────────────────────────────────────────
+//
+// The two tables behind https://myrobotaxi.app/status. They are deliberately
+// unrelated to every model above: nothing here references a User, and the page
+// that reads them is public. A status page has to be able to answer at the
+// moment the rest of the product cannot.
+//
+// Column names are snake_case (`@map`) because the 90-day roll-up is one raw
+// SQL query — see `features/status/api/status-queries.ts`. Timestamps are
+// `timestamptz` so "which UTC day did this check land in" is a property of the
+// value rather than of whoever is asking.
+
+/// One probe of one component at one moment. Written only by the Vercel cron
+/// handler at /api/cron/status, which also prunes rows older than 90 days.
+model StatusCheck {
+  id        Int      @id @default(autoincrement())
+  /// Component id from `lib/status/components.ts` — e.g. 'telemetry-api'.
+  component String
+  /// Whether the component answered as expected. One row per component per run.
+  ok        Boolean
+  latencyMs Int?     @map("latency_ms")
+  /// Short human-readable evidence: what answered, or what did not.
+  detail    String?  @db.Text
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(3)
+
+  @@index([component, checkedAt])
+  @@index([checkedAt])
+  @@map("status_checks")
+}
+
+/// A written incident record. Authored by hand (a SQL insert), never by the
+/// prober: an incident is a statement to users, not a derived value.
+model StatusIncident {
+  id         String    @id @default(cuid())
+  startedAt  DateTime  @map("started_at") @db.Timestamptz(3)
+  /// Null while the incident is still open.
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(3)
+  title      String
+  /// Body copy. A small subset of Markdown: blank-line paragraphs and `- ` bullets.
+  bodyMd     String    @map("body_md") @db.Text
+  /// Component ids this incident affected, for the attribution line.
+  components String[]
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([startedAt])
+  @@map("status_incidents")
+}
