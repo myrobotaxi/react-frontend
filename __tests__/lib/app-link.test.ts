@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { APP_URL_SCHEME, appJoinURL } from '@/lib/app-link';
+import { APP_URL_SCHEME, appJoinURL, appRideURL } from '@/lib/app-link';
 
 /**
  * MYR-453 — the string that opens the installed app from inside a webview.
@@ -60,5 +60,52 @@ describe('appJoinURL', () => {
     ]) {
       expect(appJoinURL(junk)).toBeNull();
     }
+  });
+});
+
+/**
+ * MYR-540 — the string that opens the installed app on a group ride.
+ *
+ * The other half of a contract with a repository that has not been written yet:
+ * the iOS routing arm beside `InviteLinkRouting` has to claim `ride` as its
+ * first flattened path component. Pinning it here is what makes that contract
+ * reviewable from this side.
+ */
+describe('appRideURL', () => {
+  it('builds the exact scheme URL the iOS ride arm parses', () => {
+    expect(appRideURL('RBO246')).toBe('myrobotaxi://ride/RBO246');
+  });
+
+  it('uses the scheme the app registers in CFBundleURLSchemes', () => {
+    expect(appRideURL('RBO246')?.startsWith(`${APP_URL_SCHEME}://`)).toBe(true);
+  });
+
+  it('emits no shape the app would refuse', () => {
+    const url = appRideURL('RBO246') ?? '';
+
+    expect(url.endsWith('/')).toBe(false);
+    expect(url).not.toContain('?');
+    expect(url.replace(`${APP_URL_SCHEME}://`, '').split('/')).toEqual(['ride', 'RBO246']);
+  });
+
+  it('upper-cases a code that reached the page in lower case', () => {
+    expect(appRideURL('rbo246')).toBe('myrobotaxi://ride/RBO246');
+  });
+
+  it('returns null rather than a broken link for anything that is not a code', () => {
+    for (const junk of [null, undefined, '', 'ABC', 'ABCDEFG', 'RBO-246', '../../etc', 'RBO24!']) {
+      expect(appRideURL(junk)).toBeNull();
+    }
+  });
+
+  /**
+   * The two links go to two different screens. Building one from the other's
+   * host would silently open the invite code screen on a ride code — the class
+   * of dead end MYR-453 exists to stop.
+   */
+  it('never collides with the invite deep link', () => {
+    expect(appRideURL('RBO246')).not.toBe(appJoinURL('RBO246'));
+    expect(appRideURL('RBO246')).not.toContain('/join/');
+    expect(appJoinURL('RBO246')).not.toContain('/ride/');
   });
 });
