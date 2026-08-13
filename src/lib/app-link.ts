@@ -19,6 +19,7 @@
  */
 
 import { sanitizeInviteCode } from './invite-code';
+import { sanitizeRideCode } from './ride-code';
 
 /**
  * The URL scheme the iOS app registers.
@@ -31,6 +32,17 @@ export const APP_URL_SCHEME = 'myrobotaxi';
 
 /** First path component of an in-app invite link, mirroring `InviteLink.pathComponent`. */
 const APP_JOIN_HOST = 'join';
+
+/**
+ * First path component of an in-app group-ride join link (MYR-540).
+ *
+ * Mirrors the web path `/ride/{CODE}` the same way `APP_JOIN_HOST` mirrors
+ * `/join/{CODE}` — one shape for both channels, so the iOS routing arm can
+ * flatten authority + path and match on the first segment alone. The iOS half
+ * of MYR-540 has not landed yet; this is the string it has to claim, alongside
+ * `join`, in the arm that sits beside `InviteLinkRouting`.
+ */
+const APP_RIDE_HOST = 'ride';
 
 /**
  * The in-app URL that opens an invite: `myrobotaxi://join/{CODE}`.
@@ -58,4 +70,39 @@ export function appJoinURL(code: string | null | undefined): string | null {
   if (!sanitized) return null;
 
   return `${APP_URL_SCHEME}://${APP_JOIN_HOST}/${sanitized}`;
+}
+
+/**
+ * The in-app URL that joins a group ride: `myrobotaxi://ride/{CODE}` (MYR-540).
+ *
+ * Total in the same sense as `appJoinURL`: it re-sanitizes, so it either
+ * returns a URL the app's parser can route or `null`, and `null` renders no
+ * button rather than a tappable dead end.
+ *
+ * ── WHY THE SIGNATURE IS NOT CARRIED ────────────────────────────────────────
+ * MYR-540 mints the share URL in the MYR-368 signed-link idiom, so the real
+ * link arrives as `/ride/{CODE}?k={keyId}.{expUnix}.{sigB64url}`. This function
+ * takes the code from the PATH and drops the query, exactly as `appJoinURL`
+ * does — and for the same reason, which is worth stating because it looks like
+ * a loss of information.
+ *
+ * A MYR-368 signature proves *we minted this URL*. It is LINK INTEGRITY, and
+ * its job on the invite surface is to make the names in the query safe to
+ * render into a preview card that messaging platforms cache. It is not the
+ * credential: the CODE is, and redemption is a server-side, signed-in lookup —
+ * the joiner authenticates with Apple and the telemetry service decides whether
+ * the code still redeems. That is how `/join` already works, and it is why the
+ * app's parser ignores the query there too. Carrying `k` into a custom-scheme
+ * URL would copy signature material into a channel nothing verifies, in support
+ * of a check no consumer performs.
+ *
+ * @param code - Ride join code, already sanitized by the caller. Case is
+ *   forgiven; anything else is rejected.
+ * @returns The scheme URL, or `null` when there is no well-formed code.
+ */
+export function appRideURL(code: string | null | undefined): string | null {
+  const sanitized = sanitizeRideCode(code);
+  if (!sanitized) return null;
+
+  return `${APP_URL_SCHEME}://${APP_RIDE_HOST}/${sanitized}`;
 }

@@ -19,14 +19,46 @@ describe('APPLE_APP_SITE_ASSOCIATION document', () => {
     expect(APPLE_APP_SITE_ASSOCIATION.applinks.apps).toEqual([]);
   });
 
-  it('claims exactly the /join/* path', () => {
-    expect(detail.components).toHaveLength(1);
-    expect(detail.components[0]['/']).toBe('/join/*');
+  /**
+   * The exact list, in order. Growing it is how an installed app starts
+   * swallowing links it has no screen for, so a new claim has to be a visible
+   * edit to this line.
+   */
+  it('claims exactly /join/* and /ride/*', () => {
+    expect(detail.components.map((component) => component['/'])).toEqual([
+      '/join/*',
+      '/ride/*',
+    ]);
   });
 
-  it('claims nothing outside /join', () => {
+  /**
+   * MYR-540 — the group ride share link. Its own claim rather than a widening
+   * of `/join/*`, because the app routes the two to different screens.
+   */
+  it('claims the group ride share links', () => {
+    const ride = detail.components.find((component) => component['/'] === '/ride/*');
+
+    expect(ride).toBeDefined();
+    expect(ride?.comment).toMatch(/ride/i);
+  });
+
+  /**
+   * Everything NOT claimed stays with the browser. `/privacy`, `/status` and
+   * the apex teaser are read on the web on purpose — a catch-all here would
+   * take all three away from anyone who has the app installed, silently, on
+   * Apple's CDN schedule.
+   */
+  it('claims no catch-all and nothing outside the two code-bearing routes', () => {
     for (const component of detail.components) {
-      expect(component['/'].startsWith('/join')).toBe(true);
+      expect(component['/']).not.toBe('/*');
+      expect(/^\/(join|ride)\/\*$/.test(component['/'])).toBe(true);
+    }
+  });
+
+  /** Every claim is annotated — the file is read by people, not just by iOS. */
+  it('explains each claim', () => {
+    for (const component of detail.components) {
+      expect(component.comment.length).toBeGreaterThan(0);
     }
   });
 
@@ -51,5 +83,33 @@ describe('GET /.well-known/apple-app-site-association', () => {
 
   it('is cacheable for Apple CDN', () => {
     expect(GET().headers.get('cache-control')).toContain('max-age=');
+  });
+
+  /**
+   * MYR-504 — the deploy guard, at the unit level.
+   *
+   * `vercel --prod` is run by hand here (the Git integration is disconnected),
+   * and a deploy that drops or empties this document silently disables EVERY
+   * Universal Link for every installed app, with no error anywhere in our
+   * stack. The 2026-08-09 pairing incident was that failure mode on the other
+   * `.well-known` file. So the served BODY is asserted, not just the handler's
+   * status: both claimed paths have to be in what actually goes over the wire.
+   */
+  it('serves both claimed paths in the body a deploy would publish', async () => {
+    const body = await GET().json();
+    const claimed = body.applinks.details[0].components.map(
+      (component: { '/': string }) => component['/'],
+    );
+
+    expect(claimed).toEqual(['/join/*', '/ride/*']);
+    expect(body.applinks.details[0].appID).toBe(IOS_APP_ID);
+  });
+
+  it('is never empty, which is the shape a broken deploy would serve', async () => {
+    const text = await GET().text();
+
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).not.toBe('{}');
+    expect(text).toContain('/ride/*');
   });
 });

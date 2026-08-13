@@ -13,7 +13,13 @@
  * No React code — imported by the proxy, which runs on the edge runtime.
  */
 
-import { JOIN_ROUTE, PRIVACY_ROUTE, STATUS_CRON_ROUTE, STATUS_ROUTE } from './constants';
+import {
+  JOIN_ROUTE,
+  PRIVACY_ROUTE,
+  RIDE_ROUTE,
+  STATUS_CRON_ROUTE,
+  STATUS_ROUTE,
+} from './constants';
 
 /**
  * Prefixes served without a session.
@@ -28,12 +34,20 @@ import { JOIN_ROUTE, PRIVACY_ROUTE, STATUS_CRON_ROUTE, STATUS_ROUTE } from './co
  * `/api/cron/status` is here because Vercel Cron cannot hold a session either —
  * it presents `Authorization: Bearer $CRON_SECRET`, which the handler checks
  * before it does anything. Being past this gate is not the same as being open.
+ *
+ * `/ride` is public for the plainest reason of all (MYR-540): the whole point
+ * of that page is the visitor who does not have the app, and by definition does
+ * not have an account either. Bouncing them to /signin is the dead end the page
+ * exists to prevent. It is safe to open because it holds nothing — install
+ * steps and two links, identical for every code. The ride itself is behind
+ * sign-in, in the app.
  */
 export const PUBLIC_PATHS = [
   '/signin',
   '/signup',
   '/beta',
   JOIN_ROUTE,
+  RIDE_ROUTE,
   PRIVACY_ROUTE,
   STATUS_ROUTE,
   STATUS_CRON_ROUTE,

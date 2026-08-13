@@ -413,6 +413,17 @@ test.describe('invite landing page — the codeless route', () => {
   });
 });
 
+/**
+ * MYR-504 — the `.well-known` guard, end to end against a running server.
+ *
+ * Deploys here are manual `vercel --prod` (the Git integration is
+ * disconnected), and a deploy that drops or redirects this file silently
+ * disables EVERY Universal Link for every installed app, with no error anywhere
+ * in our stack — the 2026-08-09 pairing incident was that failure mode on the
+ * other file in this directory. So the assertions are on what actually goes
+ * over the wire: the exact path, no redirect, the content type Apple requires,
+ * and every path the app claims.
+ */
 test.describe('apple-app-site-association', () => {
   test.use({ storageState: ANONYMOUS });
 
@@ -426,6 +437,48 @@ test.describe('apple-app-site-association', () => {
 
     const body = await response.json();
     expect(body.applinks.details[0].appID).toBe('NFKX777598.app.myrobotaxi.ios');
-    expect(body.applinks.details[0].components[0]['/']).toBe('/join/*');
+  });
+
+  /**
+   * Both claimed paths, as an exact list. `/ride/*` is MYR-540's only
+   * infrastructure change: the associated-domains ENTITLEMENT is host-wide
+   * (`applinks:myrobotaxi.app`) and so is the provisioning profile that carries
+   * it, so a new path is this document and nothing else. Losing the entry would
+   * not break the page — a ride link would just open the web fallback forever,
+   * which is exactly the kind of silent regression this test exists for.
+   */
+  test('claims both /join/* and /ride/*, and nothing else', async ({ request }) => {
+    const response = await request.get('/.well-known/apple-app-site-association', {
+      maxRedirects: 0,
+    });
+    const body = await response.json();
+    const claimed = body.applinks.details[0].components.map(
+      (component: { '/': string }) => component['/'],
+    );
+
+    expect(claimed).toEqual(['/join/*', '/ride/*']);
+  });
+
+  /** The empty-body failure mode a broken deploy produces. */
+  test('answers with a non-empty document', async ({ request }) => {
+    const response = await request.get('/.well-known/apple-app-site-association', {
+      maxRedirects: 0,
+    });
+
+    expect((await response.text()).length).toBeGreaterThan(0);
+  });
+
+  /**
+   * The other file MYR-504 guards, checked in the same place so neither is
+   * remembered alone. Virtual-key pairing fetches it from this domain; if a
+   * deploy drops it, every owner's pairing fails with no error in our stack.
+   */
+  test('serves the Tesla partner public key beside it', async ({ request }) => {
+    const response = await request.get('/.well-known/appspecific/com.tesla.3p.public-key.pem', {
+      maxRedirects: 0,
+    });
+
+    expect(response.status()).toBe(200);
+    expect((await response.text())).toContain('BEGIN PUBLIC KEY');
   });
 });

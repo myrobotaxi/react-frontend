@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 
 import { isBetaExcludedPath } from '@/lib/beta-gate';
-import { PRIVACY_ROUTE, STATUS_CRON_ROUTE, STATUS_ROUTE } from '@/lib/constants';
+import { PRIVACY_ROUTE, RIDE_ROUTE, STATUS_CRON_ROUTE, STATUS_ROUTE } from '@/lib/constants';
 import {
   isLockdownEnabled,
   isLockdownExempt,
@@ -19,6 +19,10 @@ describe('isLockdownExempt — reachable', () => {
     '/join/RBO246',
     '/join/rbo246',
     '/join/123456',
+    // A group ride share link, under the same rule (MYR-540).
+    '/ride/RBO246',
+    '/ride/rbo246',
+    '/ride/123456',
     '/.well-known/apple-app-site-association',
     '/.well-known/appspecific/com.tesla.3p.public-key.pem',
     '/api/auth/session',
@@ -114,15 +118,77 @@ describe('isLockdownExempt — only a code-shaped invite link', () => {
   });
 });
 
+/**
+ * MYR-540 — the ride surface is gated exactly like the invite surface, with one
+ * difference: there is no codeless arm at all. A ride cannot be joined without
+ * a code, so bare `/ride` is not a page that the lockdown happens to hide — it
+ * is a page that does not exist.
+ */
+describe('isLockdownExempt — only a code-shaped ride link', () => {
+  const rides = ['/ride/RBO246', '/ride/rbo246', '/ride/rBo2G6', '/ride/123456', '/ride/ABCDEF'];
+
+  it.each(rides)('keeps %s reachable', (pathname) => {
+    expect(isLockdownExempt(pathname)).toBe(true);
+  });
+
+  const notRides = [
+    ['the codeless route, which has no page', '/ride'],
+    ['an empty code segment', '/ride/'],
+    ['too short', '/ride/1234'],
+    ['seven characters', '/ride/RBO2467'],
+    ['a hyphen', '/ride/RBO-24'],
+    ['a percent escape', '/ride/RB%246'],
+    ['angle brackets', '/ride/<b>abc'],
+    ['non-ascii digits', '/ride/１２３４５６'],
+    ['cyrillic lookalikes', '/ride/АВС123'],
+    ['a nested path under a real code', '/ride/RBO246/extra'],
+    ['a trailing slash after a real code', '/ride/RBO246/'],
+    ['the plural, which is not a route', '/rides'],
+    ['a word', '/ride/not-a-valid-code'],
+  ] as const;
+
+  it.each(notRides)('locks down %s', (_label, pathname) => {
+    expect(isLockdownExempt(pathname)).toBe(false);
+  });
+
+  /**
+   * Same non-oracle rule as `/join`, and it bites harder: a ride code admits
+   * its holder to viewer-tier access to somebody's car, so a gate that answered
+   * differently for a live ride would be an enumeration API pointed at live
+   * vehicle positions. Every well-formed segment is served.
+   */
+  it('does not judge whether a well-formed code is a real ride', () => {
+    expect(isLockdownExempt('/ride/ZZZZZZ')).toBe(true);
+    expect(isLockdownExempt('/ride/000000')).toBe(true);
+  });
+
+  /**
+   * The ride landing has to clear all three gates for the same reason the
+   * status page does: an anonymous visitor is exactly who it is for, and every
+   * gate answers one with a redirect. The beta gate is the one that can be
+   * switched on from the Vercel dashboard without a code change — miss it and
+   * every ride link meets a password prompt the day somebody does.
+   */
+  it('is public to the auth gate and the beta gate as well', () => {
+    expect(isPublicPath(RIDE_ROUTE)).toBe(true);
+    expect(isBetaExcludedPath(RIDE_ROUTE)).toBe(true);
+    expect(isPublicPath(`${RIDE_ROUTE}/RBO246`)).toBe(true);
+    expect(isBetaExcludedPath(`${RIDE_ROUTE}/RBO246`)).toBe(true);
+  });
+});
+
 describe('isLockdownExempt — prefix boundaries', () => {
   it('does not exempt a path that merely starts with an exempt prefix', () => {
     expect(isLockdownExempt('/joinery')).toBe(false);
     expect(isLockdownExempt('/join-us')).toBe(false);
+    expect(isLockdownExempt('/rides')).toBe(false);
+    expect(isLockdownExempt('/ride-along')).toBe(false);
     expect(isLockdownExempt('/api/authorize')).toBe(false);
   });
 
   it('does not exempt an exempt segment appearing later in the path', () => {
     expect(isLockdownExempt('/settings/join')).toBe(false);
+    expect(isLockdownExempt('/drives/ride/RBO246')).toBe(false);
     expect(isLockdownExempt('/x/api/auth/session')).toBe(false);
   });
 
@@ -173,8 +239,10 @@ describe('lockdown configuration', () => {
 
   it('keeps the exemption list short and reviewable', () => {
     // Every entry here is a live external dependency or a static asset path.
-    // Growing this list silently is how a lockdown stops being one. The root
-    // and `/join/{CODE}` are not prefixes; they are asserted above.
+    // Growing this list silently is how a lockdown stops being one. The root,
+    // `/join/{CODE}` and `/ride/{CODE}` are not prefixes — a bare `/ride` must
+    // NOT become one, or the codeless route it has no page for stops being
+    // locked down; they are asserted above.
     expect(LOCKDOWN_EXEMPT_PREFIXES).toEqual([
       '/.well-known',
       '/api/auth',
