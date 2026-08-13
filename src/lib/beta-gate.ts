@@ -20,9 +20,16 @@ export const BETA_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 // a password prompt in front of the status page hides it from everyone outside
 // the team, and one in front of the cron URL would quietly stop the monitoring
 // the next time someone sets BETA_ACCESS_PASSWORD from the dashboard.
+//
+// `/ride` is here alongside `/join` (MYR-540). A group-ride share link is
+// tapped by somebody who has no app, no account and no beta password — that is
+// who the page is for — and this gate is the one that can be switched on from
+// the Vercel dashboard without a code change. Forgetting this entry would put
+// a password prompt in front of every ride link the day someone does.
 const BETA_EXCLUDED_PATHS = [
   '/beta',
   '/join',
+  '/ride',
   '/privacy',
   '/status',
   '/api/cron/status',

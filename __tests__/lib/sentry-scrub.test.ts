@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { scrubInviteCodes } from '@/lib/sentry-scrub';
+import { scrubBearerCodePaths } from '@/lib/sentry-scrub';
 import { redactInviteCodePaths } from '@/lib/invite-code';
 
 describe('redactInviteCodePaths', () => {
@@ -48,7 +48,7 @@ describe('redactInviteCodePaths', () => {
   });
 });
 
-describe('scrubInviteCodes', () => {
+describe('scrubBearerCodePaths', () => {
   it('redacts nested string values in an event-shaped object', () => {
     const event = {
       transaction: 'GET /join/RBO246',
@@ -57,7 +57,7 @@ describe('scrubInviteCodes', () => {
       contexts: { trace: { data: { 'url.path': '/join/RBO246' } } },
     };
 
-    const scrubbed = scrubInviteCodes(event);
+    const scrubbed = scrubBearerCodePaths(event);
 
     expect(scrubbed.transaction).toBe('GET /join/[code]');
     expect(scrubbed.request.url).toBe('https://myrobotaxi.app/join/[code]');
@@ -67,7 +67,7 @@ describe('scrubInviteCodes', () => {
 
   it('leaves the original event unmutated', () => {
     const event = { request: { url: '/join/RBO246' } };
-    scrubInviteCodes(event);
+    scrubBearerCodePaths(event);
     expect(event.request.url).toBe('/join/RBO246');
   });
 
@@ -79,17 +79,17 @@ describe('scrubInviteCodes', () => {
       missing: undefined,
     };
 
-    expect(scrubInviteCodes(event)).toEqual(event);
+    expect(scrubBearerCodePaths(event)).toEqual(event);
   });
 
   it('passes class instances through untouched', () => {
     const error = new Error('boom');
-    const scrubbed = scrubInviteCodes({ exception: error });
+    const scrubbed = scrubBearerCodePaths({ exception: error });
     expect(scrubbed.exception).toBe(error);
   });
 
   it('handles arrays of strings', () => {
-    expect(scrubInviteCodes(['/join/RBO246', '/drives'])).toEqual([
+    expect(scrubBearerCodePaths(['/join/RBO246', '/drives'])).toEqual([
       '/join/[code]',
       '/drives',
     ]);
@@ -101,6 +101,44 @@ describe('scrubInviteCodes', () => {
     let nested: Record<string, unknown> = { url: '/join/RBO246' };
     for (let i = 0; i < 12; i += 1) nested = { nested };
 
-    expect(() => scrubInviteCodes(nested)).not.toThrow();
+    expect(() => scrubBearerCodePaths(nested)).not.toThrow();
+  });
+
+  /**
+   * MYR-540 — the second public code-bearing route. A ride code is a bearer
+   * credential in exactly the same sense, and Sentry records the URL of every
+   * sampled transaction without anyone writing a log line.
+   */
+  it('redacts ride codes as well as invite codes', () => {
+    const event = {
+      transaction: 'GET /ride/RBO246',
+      request: { url: 'https://myrobotaxi.app/ride/RBO246?k=1.99.abc' },
+      breadcrumbs: [{ data: { url: '/ride/rbo246' } }],
+    };
+
+    const scrubbed = scrubBearerCodePaths(event);
+
+    expect(scrubbed.transaction).toBe('GET /ride/[code]');
+    expect(scrubbed.request.url).toBe('https://myrobotaxi.app/ride/[code]?k=1.99.abc');
+    expect(scrubbed.breadcrumbs[0].data.url).toBe('/ride/[code]');
+  });
+
+  it('redacts both kinds in one string', () => {
+    expect(scrubBearerCodePaths('/join/RBO246 -> /ride/ZZ9999')).toBe(
+      '/join/[code] -> /ride/[code]',
+    );
+  });
+
+  /**
+   * The check that stops the next public code-bearing route from being
+   * forgotten: nothing that looks like a six-character code may survive on a
+   * path either module claims.
+   */
+  it('leaves no code behind on either route', () => {
+    const scrubbed = scrubBearerCodePaths({
+      urls: ['/join/RBO246', '/ride/RBO246', '/ride/RBO246?utm=sms'],
+    });
+
+    expect(JSON.stringify(scrubbed)).not.toContain('RBO246');
   });
 });

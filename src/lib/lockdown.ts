@@ -17,11 +17,13 @@
 import {
   JOIN_ROUTE,
   PRIVACY_ROUTE,
+  RIDE_ROUTE,
   ROOT_ROUTE,
   STATUS_CRON_ROUTE,
   STATUS_ROUTE,
 } from './constants';
 import { isInviteCodeShaped } from './invite-code';
+import { isRideCodeShaped } from './ride-code';
 
 /**
  * Whether the lockdown is active. On unless explicitly switched off, so a
@@ -83,9 +85,9 @@ export const LOCKDOWN_REDIRECT_STATUS = 302;
  *   the monitoring without breaking anything a person would notice. The cron
  *   handler checks `CRON_SECRET` itself.
  *
- * The two paths NOT in this list because they are not simple prefixes — the
- * redirect target itself and a code-shaped invite link — are handled in
- * `isLockdownExempt`.
+ * The three paths NOT in this list because they are not simple prefixes — the
+ * redirect target itself, a code-shaped invite link, and a code-shaped ride
+ * share link — are handled in `isLockdownExempt`.
  *
  * Deliberately NOT exempt: `/monitoring`, the Sentry tunnel from
  * next.config.mjs. The pre-existing auth gate below already redirects it for
@@ -108,7 +110,7 @@ export const LOCKDOWN_EXEMPT_PREFIXES = [
 /**
  * Returns true when `pathname` may be served normally.
  *
- * Three ways to qualify:
+ * Four ways to qualify:
  *
  * 1. The redirect target `/` itself — the teaser. Exempting it is what stops
  *    the redirect from looping.
@@ -117,7 +119,10 @@ export const LOCKDOWN_EXEMPT_PREFIXES = [
  *    neither does `/join/1234` — those go to the teaser like any other retired
  *    route, so a URL that could not be an invite link never reaches the invite
  *    page.
- * 3. One of the prefixes above, with or without a subpath.
+ * 3. `/ride/{CODE}`, under exactly the same rule (MYR-540). Bare `/ride` has
+ *    no codeless arm at all — there is no such thing as joining a ride without
+ *    one — so it 404s behind this redirect and is never rendered.
+ * 4. One of the prefixes above, with or without a subpath.
  *
  * Prefix matching is boundary-aware: `/joinery` is not exempt just because it
  * starts with `/join`.
@@ -139,6 +144,14 @@ export const LOCKDOWN_EXEMPT_PREFIXES = [
  *
  * Shape is public information (the format is in every invite link ever sent);
  * existence is not. This gate only spends the former.
+ *
+ * All of which is true of `/ride/{CODE}` word for word, and the stakes are
+ * higher: a ride code admits its holder to viewer-tier access to somebody's
+ * car for the length of a trip, so a gate that answered differently for a live
+ * ride would be an enumeration API pointed at live vehicle positions. The ride
+ * page answers 200 for every well-formed segment and renders the same words
+ * every time — it holds no ride data to leak, and it never asks whether the
+ * code is real. The telemetry service decides that at redeem, behind sign-in.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 export function isLockdownExempt(pathname: string): boolean {
@@ -146,6 +159,10 @@ export function isLockdownExempt(pathname: string): boolean {
 
   if (pathname.startsWith(`${JOIN_ROUTE}/`)) {
     return isInviteCodeShaped(pathname.slice(JOIN_ROUTE.length + 1));
+  }
+
+  if (pathname.startsWith(`${RIDE_ROUTE}/`)) {
+    return isRideCodeShaped(pathname.slice(RIDE_ROUTE.length + 1));
   }
 
   return LOCKDOWN_EXEMPT_PREFIXES.some(
