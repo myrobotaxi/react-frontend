@@ -1,7 +1,7 @@
 /**
  * Regenerates the static link-preview cards.
  *
- * Two of them, identical but for one line of copy, because the two public
+ * Three of them, identical but for one line of copy, because the public
  * surfaces are shared with different people:
  *
  *  • `invite-card.png` — og:image for `/join/{CODE}`. Sent to one recipient,
@@ -9,10 +9,16 @@
  *  • `coming-soon.png` — og:image for the apex teaser at `/`. The domain is
  *    posted publicly; a card that says someone is invited would undo the point
  *    of putting the invite experience behind a uniquely generated link.
+ *  • `ride-card.png` — og:image for `/ride/{CODE}`, the group-ride join link
+ *    (MYR-540). This is the one that gets forwarded the most: a group ride
+ *    link is pasted into a chat on purpose, so its card is rendered to everyone
+ *    in the thread.
  *
- * Both are deliberately GENERIC — no invite code, no sender or recipient name.
- * Messaging apps cache previews and show them to everyone in a thread, so
- * anything baked in here is public.
+ * All three are deliberately GENERIC — no code, no sender or recipient name,
+ * and for the ride card no map, no ETA and no member count. Messaging apps
+ * cache previews and show them to everyone in a thread, so anything baked in
+ * here is public; behind a ride link that would mean publishing where somebody
+ * physically is.
  *
  * The lockup is the canonical brand: the two-tone gold facet arrow on a matte
  * near-black tile, above the single-color uppercase wordmark. It is duplicated
@@ -22,7 +28,11 @@
  * `ios-app/design/app/components.jsx:9-45`. No hexagons.
  *
  * Run: node scripts/generate-og-image.mjs
- * Output: public/og/invite-card.png, public/og/coming-soon.png (1200x630)
+ * Output: public/og/{invite-card,coming-soon,ride-card}.png (1200x630)
+ *
+ * Build-time script, NOT part of `next build`. The PNGs are committed to
+ * `public/og/` and served as static files, so a new card means running this and
+ * committing its output alongside the code that references it.
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'fs';
@@ -33,12 +43,19 @@ const OUT_DIR = resolve('./public/og');
 /**
  * The cards, in the order they are written. `tagline` is the ONLY thing that
  * varies — the ground, the lockup and the wash are the brand and stay in step.
- * Keep the filenames in step with `INVITE_OG_IMAGE_PATH` and
- * `COMING_SOON_OG_IMAGE_PATH` in `src/lib/constants.ts`.
+ * Keep the filenames in step with `INVITE_OG_IMAGE_PATH`,
+ * `COMING_SOON_OG_IMAGE_PATH` and `RIDE_OG_IMAGE_PATH` in
+ * `src/lib/constants.ts`.
+ *
+ * The ride tagline is a shortened form of `RIDE_JOIN_TITLE` in
+ * `src/lib/ride-copy.ts` — no emoji, because the wordmark face is loaded for
+ * Latin only and an emoji would render in whatever the headless browser
+ * substitutes.
  */
 const CARDS = [
   { file: 'invite-card.png', tagline: 'You&rsquo;re invited to ride a Tesla' },
   { file: 'coming-soon.png', tagline: 'Coming soon' },
+  { file: 'ride-card.png', tagline: 'You&rsquo;re invited to join a ride' },
 ];
 
 const WIDTH = 1200;
